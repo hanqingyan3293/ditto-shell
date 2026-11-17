@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>快速面板 · 斜杠命令</title>
+<style>
+:root{
+  --bg:#ffffff;--hover:#f5f5f5;--sel:#e6f4ff;--sel-hover:#d8ecff;
+  --text:rgba(0,0,0,.88);--text2:rgba(0,0,0,.65);--text3:rgba(0,0,0,.45);
+  --line:#f0f0f0;--border:#e8e8e8;--primary:#1677ff;--brand:#722ed1;
+  --red:#ff4d4f;--magenta:#eb2f96;--purple:#722ed1;--cyan:#13c2c2;--orange:#fa8c16;--green:#52c41a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;
+  background:linear-gradient(140deg,#eef1f6 0%,#e4e9f2 50%,#dfe5ef 100%);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:34px;
+  color:var(--text);-webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"Cascadia Code","Consolas",monospace}
+
+.pop{
+  width:428px;height:556px;background:var(--bg);border-radius:12px;
+  box-shadow:0 20px 48px -12px rgba(16,24,40,.28),0 6px 16px rgba(16,24,40,.10),0 0 0 1px rgba(0,0,0,.05);
+  display:flex;flex-direction:column;overflow:hidden;position:relative;
+}
+
+/* 搜索：已输入 / */
+.sbar{height:54px;flex:none;display:flex;align-items:center;gap:9px;padding:0 14px;border-bottom:1px solid var(--line)}
+.sbar svg.mag{opacity:.42;flex:none}
+.sbar .q{flex:1;font-size:14px;display:flex;align-items:center;gap:2px}
+.sbar .slash{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:19px;height:19px;border-radius:5px;background:rgba(22,119,255,.10);
+  color:var(--primary);font-weight:700;font-size:13px;font-family:"Cascadia Code",monospace;
+}
+.sbar .caret{width:1.5px;height:16px;background:var(--primary)}
+.sbar .esc{font-size:10px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;background:#fff}
+
+/* 斜杠面板 */
+.panel{
+  position:absolute;left:8px;right:8px;top:58px;
+  background:#fff;border-radius:10px;overflow:hidden;
+  box-shadow:0 12px 32px -8px rgba(16,24,40,.24),0 3px 10px rgba(16,24,40,.08),0 0 0 1px rgba(0,0,0,.06);
+  display:flex;flex-direction:column;
+}
+.cap{
+  font-size:10px;letter-spacing:.06em;color:var(--text3);text-transform:uppercase;
+  padding:9px 13px 5px;background:#fff;
+}
+.cap.rec{padding-top:11px}
+
+.cmd{
+  display:flex;align-items:center;gap:10px;height:42px;padding:0 11px;margin:0 5px;border-radius:7px;
+}
+.cmd.sel{background:var(--sel)}
+.cmd.sel:hover{background:var(--sel-hover)}
+.cmd:hover{background:var(--hover)}
+.cmd .ic{
+  width:24px;height:24px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;
+}
+.cmd .nm{font-size:13px;font-weight:600;color:var(--text)}
+.cmd.sel .nm{color:#0b57c9}
+.cmd .alias{
+  font-size:11px;font-family:"Cascadia Code","Consolas",monospace;color:var(--text3);
+  background:#f5f5f5;border-radius:4px;padding:1px 5px;margin-left:1px;
+}
+.cmd .ds{font-size:11.5px;color:var(--text3);margin-left:auto;white-space:nowrap}
+.cmd .arw{color:var(--text3);opacity:.5;flex:none;margin-left:2px}
+
+.ic-tag{background:rgba(235,47,150,.10);color:var(--magenta)}
+.ic-grp{background:rgba(114,46,209,.10);color:var(--purple)}
+.ic-type{background:rgba(22,119,255,.10);color:var(--primary)}
+.ic-app{background:rgba(250,140,22,.12);color:var(--orange)}
+.ic-date{background:rgba(19,194,194,.12);color:var(--cyan)}
+.ic-re{background:rgba(82,196,26,.12);color:var(--green)}
+.ic-ai{background:linear-gradient(135deg,rgba(146,84,222,.18),rgba(22,119,255,.16));color:#722ed1}
+.ic-sec{background:rgba(255,77,79,.10);color:var(--red)}
+
+.pfoot{
+  height:32px;flex:none;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;
+  padding:0 12px;font-size:10px;color:var(--text3);
+}
+.pfoot kbd{font-family:inherit;font-size:9px;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;padding:0 4px;color:var(--text2)}
+
+/* 底层列表（被面板遮挡，露出一点） */
+.lst{flex:1;overflow:hidden;padding:8px 6px 0;opacity:0}
+.it{display:flex;align-items:center;gap:9px;height:46px;padding:0 9px;border-radius:6px}
+.idx{width:15px;flex:none;text-align:right;font-size:10.5px;color:var(--text3)}
+.it .tx{flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .tm{font-size:10.5px;color:var(--text3);flex:none}
+
+.fbar{
+  height:44px;flex:none;border-top:1px solid var(--line);display:flex;align-items:center;
+  gap:12px;padding:0 12px 0 14px;font-size:10.5px;color:var(--text3);
+}
+.fbar kbd{font-family:inherit;font-size:9.5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;padding:0 4px;background:#fff;color:var(--text2)}
+.fbar .sp{flex:1}
+.mgr{
+  height:26px;padding:0 9px;border-radius:5px;display:flex;align-items:center;gap:5px;
+  font-size:11.5px;color:var(--primary);background:rgba(22,119,255,.08);border:1px solid rgba(22,119,255,.18);font-weight:600;
+}
+</style>
+</head>
+<body>
+<div class="pop">
+  <!-- 搜索框：已输入 / -->
+  <div class="sbar">
+    <svg class="mag" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <div class="q"><span class="slash">/</span><span class="caret"></span></div>
+    <span class="esc">Esc</span>
+  </div>
+
+  <!-- 斜杠面板 -->
+  <div class="panel">
+    <div class="cap rec">最近使用</div>
+
+    <div class="cmd">
+      <span class="ic ic-grp"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+      <span class="nm">分组</span>
+      <span class="alias">g:</span>
+      <span class="ds">M4A1 · PKM · KC17</span>
+      <span class="arw">›</span>
+    </div>
+
+    <div class="cmd">
+      <span class="ic ic-tag"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg></span>
+      <span class="nm">标签</span>
+      <span class="alias">tag:</span>
+      <span class="ds">周报 · 配装 · 参考</span>
+      <span class="arw">›</span>
+    </div>
+
+    <div class="cap">筛选器</div>
+
+    <div class="cmd sel">
+      <span class="ic ic-type"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+      <span class="nm">按类型</span>
+      <span class="alias">type:</span>
+      <span class="ds">文本 / 代码 / 链接 / 图片</span>
+      <span class="arw">›</span>
+    </div>
+
+    <div class="cmd">
+      <span class="ic ic-app"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8"/></svg></span>
+      <span class="nm">来源应用</span>
+      <span class="alias">app:</span>
+      <span class="ds">Chrome · VS Code · DeepSeek</span>
+      <span class="arw">›</span>
+    </div>
+
+    <div class="cmd">
+      <span class="ic ic-date"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+      <span class="nm">时间范围</span>
+      <span class="alias">date:</span>
+      <span class="ds">今天 / 本周 / 自定义</span>
+      <span class="arw">›</span>
+    </div>
+
+    <div class="cmd">
+      <span class="ic ic-re"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg></span>
+      <span class="nm">正则搜索</span>
+      <span class="alias">re:</span>
+      <span class="ds">高级模式</span>
+    </div>
+
+    <div class="cmd">
+      <span class="ic ic-sec"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M21 12v2"/></svg></span>
+      <span class="nm">敏感内容</span>
+      <span class="alias">secret:</span>
+      <span class="ds">只看凭据类</span>
+    </div>
+
+    <div class="cmd">
+      <span class="ic ic-ai"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span>
+      <span class="nm">AI 语义搜索</span>
+      <span class="alias">ai:</span>
+      <span class="ds">说人话找东西</span>
+    </div>
+
+    <div class="pfoot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+      <span><kbd>↵</kbd> 确定</span>
+      <span><kbd>Esc</kbd> 关闭</span>
+      <span style="margin-left:auto">也可以继续打字直接搜</span>
+    </div>
+  </div>
+
+  <!-- 底层列表 -->
+  <div class="lst">
+    <div class="it"><span class="idx">1</span><span class="tx mono">https://github.com/mg-chao/snow-shot</span><span class="tm">3 分</span></div>
+    <div class="it"><span class="idx">2</span><span class="tx">不做云同步、不做多机、不做手机端…</span><span class="tm">8 分</span></div>
+    <div class="it"><span class="idx">3</span><span class="tx mono">gh auth login --with-token</span><span class="tm">昨天</span></div>
+    <div class="it"><span class="idx">4</span><span class="tx mono">github_pat_11BIJ••••</span><span class="tm">昨天</span></div>
+    <div class="it"><span class="idx">5</span><span class="tx">截图 2026-11-15 052411.png</span><span class="tm">昨天</span></div>
+  </div>
+
+  <div class="fbar">
+    <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+    <span><kbd>↵</kbd> 粘贴</span>
+    <span><kbd>/</kbd> 筛选</span>
+    <span><kbd>Tab</kbd> 分组</span>
+    <span class="sp"></span>
+    <div class="mgr">管理历史
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </div>
+  </div>
+</div>
+</body>
+</html>

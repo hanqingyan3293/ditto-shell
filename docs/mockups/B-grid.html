@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>方案 B · 顶部搜索 + 横滑分组 + 双列网格</title>
+<style>
+:root{
+  --bg:#141414; --panel:#1a1a1e; --panel-2:#222228; --card:#26262d; --card-h:#2e2e37;
+  --border:#31313a; --divider:#26262c;
+  --text:#ececef; --text-2:#a8a8b4; --text-3:#70707c;
+  --primary:#1677ff; --primary-dim:rgba(22,119,255,.14);
+  --green:#52c41a; --orange:#faad14; --red:#ff4d4f; --magenta:#eb2f96; --cyan:#13c2c2; --purple:#9254de;
+  --r:6px; --r-lg:12px;
+  --shadow:0 6px 16px -8px rgba(0,0,0,.6), 0 9px 28px 0 rgba(0,0,0,.45), 0 12px 48px 16px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;
+  background:radial-gradient(1100px 640px at 75% 10%,#2a2038 0%,#111318 55%,#07080a 100%);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:36px;
+  color:var(--text);-webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"Cascadia Code","Consolas",monospace}
+.win{
+  width:900px;height:580px;background:var(--panel);border-radius:var(--r-lg);
+  border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;
+}
+/* 顶部 */
+.head{padding:14px 16px 0;flex:none}
+.srow{display:flex;align-items:center;gap:10px}
+.search{
+  flex:1;height:44px;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;
+  display:flex;align-items:center;gap:10px;padding:0 14px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+}
+.search svg{opacity:.45;flex:none}
+.search .ph{color:var(--text-3);font-size:13.5px;flex:1}
+.search .key{font-size:10px;color:var(--text-3);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+.ai{
+  height:44px;padding:0 14px;border-radius:10px;border:1px solid rgba(146,84,222,.45);
+  background:linear-gradient(135deg,rgba(146,84,222,.26),rgba(22,119,255,.22));
+  color:#d3bbff;font-size:12.5px;display:flex;align-items:center;gap:6px;flex:none;font-weight:600;
+}
+.av{width:44px;height:44px;border-radius:10px;background:var(--panel-2);border:1px solid var(--border);flex:none;
+  display:flex;align-items:center;justify-content:center;color:var(--text-2)}
+
+/* pill 行 */
+.pills{display:flex;align-items:center;gap:6px;padding:12px 0 10px;overflow:hidden}
+.pill{
+  height:28px;padding:0 11px;border-radius:14px;background:var(--panel-2);border:1px solid var(--border);
+  font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:6px;flex:none;
+}
+.pill .n{font-size:10.5px;color:var(--text-3)}
+.pill.on{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+.pill.on .n{color:rgba(255,255,255,.75)}
+.pill.more{border-style:dashed}
+.pills .sp{flex:1}
+.sortbox{
+  height:28px;padding:0 10px;border-radius:14px;background:var(--panel-2);border:1px solid var(--border);
+  font-size:11.5px;color:var(--text-2);display:flex;align-items:center;gap:6px;flex:none;
+}
+.dot{width:6px;height:6px;border-radius:2px;flex:none}
+
+/* 网格 */
+.grid{
+  flex:1;overflow:hidden;padding:0 16px 8px;
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start;
+}
+.c{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 11px;
+  display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;
+}
+.c::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--text-3);opacity:.5}
+.c.sel{background:linear-gradient(135deg,rgba(22,119,255,.17),rgba(22,119,255,.05));border-color:rgba(22,119,255,.45)}
+.c.sel::before{opacity:1;background:var(--primary);width:3px}
+.c .t{font-size:13px;line-height:1.5;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.c .t.one{-webkit-line-clamp:1}
+.c .m{font-size:10.5px;color:var(--text-3);display:flex;align-items:center;gap:6px;margin-top:auto}
+.tag{font-size:9.5px;padding:0 5px;height:15px;line-height:15px;border-radius:3px;background:rgba(255,255,255,.07);color:var(--text-2);flex:none}
+.thumb{height:56px;border-radius:5px;background:linear-gradient(135deg,#334155,#7c3aed 55%,#ec4899);margin-bottom:2px}
+.c.tall{grid-row:span 2}
+
+/* 底栏 */
+.foot{
+  height:36px;flex:none;border-top:1px solid var(--divider);display:flex;align-items:center;gap:14px;
+  padding:0 16px;font-size:10.5px;color:var(--text-3);
+}
+.foot kbd{font-family:inherit;font-size:9.5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;padding:0 4px;color:var(--text-2)}
+.sp{flex:1}
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="head">
+    <div class="srow">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <span class="ph">搜索全部历史，或直接问我「上周那个 M4A1 的配件表」</span>
+        <span class="key">Ctrl K</span>
+      </div>
+      <div class="ai">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg>
+        AI
+      </div>
+      <div class="av">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>
+      </div>
+    </div>
+
+    <div class="pills">
+      <div class="pill on"><span class="dot" style="background:#fff"></span>全部<span class="n">6135</span></div>
+      <div class="pill"><span class="dot" style="background:var(--green)"></span>今天<span class="n">48</span></div>
+      <div class="pill"><span class="dot" style="background:var(--magenta)"></span>图片<span class="n">113</span></div>
+      <div class="pill"><span class="dot" style="background:var(--cyan)"></span>链接<span class="n">2834</span></div>
+      <div class="pill"><span class="dot" style="background:var(--purple)"></span>代码<span class="n">326</span></div>
+      <div class="pill"><span class="dot" style="background:var(--orange)"></span>未归类<span class="n">412</span></div>
+      <div class="pill more">分组 35 ▾</div>
+      <div class="sp"></div>
+      <div class="sortbox">
+        最近复制
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="c sel">
+      <div class="t one mono">https://github.com/mg-chao/snow-shot</div>
+      <div class="m"><span class="tag" style="background:rgba(19,194,194,.16);color:#5cdbd3">链接</span><span>Chrome</span><span>·</span><span>3 分钟前</span></div>
+    </div>
+
+    <div class="c">
+      <div class="t">不做云同步、不做多机、不做手机端、不做密码管理。</div>
+      <div class="m"><span class="tag">文本</span><span>DeepSeek</span><span>·</span><span>8 分钟前</span></div>
+    </div>
+
+    <div class="c tall">
+      <div class="thumb"></div>
+      <div class="t one">截图 2026-11-15 052411.png</div>
+      <div class="m"><span class="tag" style="background:rgba(235,47,150,.16);color:#ff85c0">图片</span><span>1920×1080</span><span>·</span><span>昨天</span></div>
+    </div>
+
+    <div class="c">
+      <div class="t one mono">gh auth login --with-token &lt; dsh-token.txt</div>
+      <div class="m"><span class="tag" style="background:rgba(146,84,222,.18);color:#b37feb">命令</span><span>PowerShell</span></div>
+    </div>
+
+    <div class="c">
+      <div class="t one mono">github_pat_11BIJ••••••••••••</div>
+      <div class="m"><span class="tag" style="background:rgba(255,77,79,.18);color:#ff7875">敏感·脱敏</span><span>昨天 01:47</span></div>
+    </div>
+
+    <div class="c">
+      <div class="t">密钥怎么交给我（按安全度排序）方案 A（推荐）：本地文件，不进聊天…</div>
+      <div class="m"><span class="tag">长文本 1.2k</span><span>DeepSeek</span><span>·</span><span>昨天</span></div>
+    </div>
+
+    <div class="c">
+      <div class="t one mono">conn = sqlite3.connect("file:Ditto.db?mode=ro", uri=True)</div>
+      <div class="m"><span class="tag" style="background:rgba(146,84,222,.18);color:#b37feb">Python</span><span>VS Code</span></div>
+    </div>
+
+    <div class="c">
+      <div class="t one mono">D:\File\GitHub\令牌</div>
+      <div class="m"><span class="tag" style="background:rgba(250,173,20,.16);color:#ffc53d">文件夹</span><span>资源管理器</span></div>
+    </div>
+
+    <div class="c">
+      <div class="t one mono">git push origin main</div>
+      <div class="m"><span class="tag" style="background:rgba(146,84,222,.18);color:#b37feb">命令</span><span>PowerShell</span></div>
+    </div>
+
+    <div class="c">
+      <div class="t">我想二开 ditto 软件，参考这个截图软件的 UI 界面，全部由 AI 开发…</div>
+      <div class="m"><span class="tag">长文本 480</span><span>DeepSeek</span><span>·</span><span>8 小时前</span></div>
+    </div>
+
+    <div class="c">
+      <div class="t one mono">SELECT lID, mText FROM Main WHERE lParentID = -1</div>
+      <div class="m"><span class="tag" style="background:rgba(146,84,222,.18);color:#b37feb">SQL</span><span>VS Code</span></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 移动</span>
+    <span><kbd>Enter</kbd> 粘贴</span>
+    <span><kbd>Tab</kbd> 切换分组</span>
+    <span><kbd>S</kbd> 排序</span>
+    <span class="sp"></span>
+    <span>6,135 条 · 已索引 · 本地 830MB</span>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>方案 A · 侧栏 + 单列卡片</title>
+<style>
+:root{
+  --bg:#141414; --panel:#1b1b1f; --panel-2:#202025; --card:#232329; --card-h:#2b2b33;
+  --border:#303038; --divider:#26262c;
+  --text:#e9e9ec; --text-2:#a5a5b0; --text-3:#6d6d78;
+  --primary:#1677ff; --primary-dim:rgba(22,119,255,.14);
+  --green:#52c41a; --orange:#faad14; --red:#ff4d4f; --magenta:#eb2f96; --cyan:#13c2c2;
+  --r:6px; --r-lg:10px;
+  --shadow:0 6px 16px -8px rgba(0,0,0,.6), 0 9px 28px 0 rgba(0,0,0,.45), 0 12px 48px 16px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;
+  background:radial-gradient(1200px 700px at 20% 0%,#1d2430 0%,#0d0f13 55%,#07080a 100%);
+  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px;
+  color:var(--text); -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"Cascadia Code","Consolas",monospace}
+
+/* ============ 窗口 ============ */
+.win{
+  width:740px; height:560px; background:var(--panel); border-radius:var(--r-lg);
+  border:1px solid var(--border); box-shadow:var(--shadow); overflow:hidden;
+  display:flex; flex-direction:column; position:relative;
+}
+.win::before{content:"";position:absolute;inset:0;border-radius:var(--r-lg);
+  background:linear-gradient(180deg,rgba(255,255,255,.045),transparent 22%);pointer-events:none}
+
+/* ============ 顶部搜索 ============ */
+.top{display:flex;align-items:center;gap:8px;padding:12px 12px 10px;border-bottom:1px solid var(--divider)}
+.search{
+  flex:1;height:38px;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--r);
+  display:flex;align-items:center;gap:8px;padding:0 10px;
+}
+.search svg{flex:none;opacity:.5}
+.search .ph{color:var(--text-3);font-size:13px;flex:1}
+.key{font-size:10px;color:var(--text-3);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+.iconbtn{
+  width:38px;height:38px;border-radius:var(--r);background:var(--panel-2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;color:var(--text-2);flex:none;
+}
+.iconbtn.on{background:var(--primary-dim);border-color:rgba(22,119,255,.4);color:var(--primary)}
+
+/* ============ 主体 ============ */
+.body{flex:1;display:flex;min-height:0}
+
+/* 侧栏 */
+.side{width:176px;flex:none;border-right:1px solid var(--divider);padding:8px 6px;overflow:hidden;display:flex;flex-direction:column}
+.side .cap{font-size:10px;letter-spacing:.08em;color:var(--text-3);padding:6px 8px 4px;text-transform:uppercase}
+.g{
+  display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:var(--r);
+  font-size:12.5px;color:var(--text-2);cursor:default;
+}
+.g .dot{width:6px;height:6px;border-radius:2px;flex:none;background:var(--text-3)}
+.g .n{margin-left:auto;font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.g.sel{background:var(--primary-dim);color:var(--primary);font-weight:600}
+.g.sel .n{color:rgba(22,119,255,.8)}
+.g.sel .dot{background:var(--primary)}
+.g:hover{background:rgba(255,255,255,.045)}
+.grp-line{height:1px;background:var(--divider);margin:6px 8px}
+.side-foot{margin-top:auto;padding:8px;font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:6px}
+.bar{height:4px;border-radius:2px;background:var(--border);flex:1;overflow:hidden}
+.bar i{display:block;height:100%;width:72%;background:linear-gradient(90deg,var(--primary),#4d9bff)}
+
+/* 列表 */
+.list{flex:1;overflow:hidden;padding:8px 8px 0;display:flex;flex-direction:column;gap:4px}
+.row{
+  display:flex;align-items:center;gap:10px;padding:9px 10px 9px 0;border-radius:var(--r);
+  background:transparent;position:relative;flex:none;
+}
+.row .edge{width:3px;align-self:stretch;border-radius:2px;background:var(--text-3);opacity:.55;margin-left:0}
+.row.sel{background:linear-gradient(90deg,rgba(22,119,255,.16),rgba(22,119,255,.05));box-shadow:inset 0 0 0 1px rgba(22,119,255,.28)}
+.row.sel .edge{opacity:1}
+.row:hover{background:rgba(255,255,255,.04)}
+.row .txt{flex:1;min-width:0}
+.row .l1{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.45}
+.row.sel .l1{color:#fff}
+.row .l2{font-size:11px;color:var(--text-3);margin-top:2px;display:flex;gap:8px;align-items:center}
+.tag{font-size:10px;padding:0 5px;height:15px;line-height:15px;border-radius:3px;background:rgba(255,255,255,.07);color:var(--text-2)}
+.tag.m4{background:rgba(235,47,150,.16);color:#ff85c0}
+.thumb{width:28px;height:28px;border-radius:4px;flex:none;background:linear-gradient(135deg,#3a4a6b,#8b5cf6 60%,#ec4899)}
+.mi{font-size:10.5px;color:var(--text-3);flex:none;display:flex;align-items:center;gap:6px}
+
+/* 颜色条语义 */
+.c-text{background:var(--primary)}
+.c-code{background:#9254de}
+.c-link{background:var(--cyan)}
+.c-img{background:var(--magenta)}
+.c-file{background:var(--orange)}
+.c-secret{background:var(--red)}
+
+/* 底栏 */
+.foot{
+  height:34px;flex:none;border-top:1px solid var(--divider);display:flex;align-items:center;
+  gap:12px;padding:0 12px;font-size:10.5px;color:var(--text-3);
+}
+.foot .kb{display:inline-flex;gap:3px;align-items:center}
+.foot kbd{font-family:inherit;font-size:9.5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;padding:0 4px;color:var(--text-2)}
+.sp{flex:1}
+</style>
+</head>
+<body>
+<div class="win">
+  <!-- 顶栏 -->
+  <div class="top">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span class="ph">搜索 6,135 条历史…（支持全文、正则、标签）</span>
+      <span class="key">Ctrl K</span>
+    </div>
+    <div class="iconbtn" title="排序：最近复制">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h12M3 12h9M3 18h6"/><path d="M18 9l3 3-3 3"/></svg>
+    </div>
+    <div class="iconbtn on" title="AI 检索">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg>
+    </div>
+    <div class="iconbtn" title="设置">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- 侧栏 -->
+    <div class="side">
+      <div class="cap">视图</div>
+      <div class="g sel"><span class="dot"></span>全部历史<span class="n">6,135</span></div>
+      <div class="g"><span class="dot" style="background:var(--green)"></span>今天<span class="n">48</span></div>
+      <div class="g"><span class="dot" style="background:var(--magenta)"></span>图片<span class="n">113</span></div>
+      <div class="g"><span class="dot" style="background:var(--cyan)"></span>链接<span class="n">2,834</span></div>
+      <div class="g"><span class="dot" style="background:#9254de"></span>代码<span class="n">326</span></div>
+      <div class="g"><span class="dot"></span>未归类<span class="n">412</span></div>
+      <div class="grp-line"></div>
+      <div class="cap">分组 · 35</div>
+      <div class="g"><span class="dot" style="background:#eb2f96"></span>M4A1<span class="n">18</span></div>
+      <div class="g"><span class="dot" style="background:#faad14"></span>PKM<span class="n">11</span></div>
+      <div class="g"><span class="dot" style="background:#13c2c2"></span>KC17<span class="n">30</span></div>
+      <div class="g"><span class="dot" style="background:#9254de"></span>ASVAL<span class="n">13</span></div>
+      <div class="g"><span class="dot" style="background:#ff7a45"></span>M7<span class="n">18</span></div>
+      <div class="side-foot">
+        <span>本地占用</span><div class="bar"><i></i></div><span>830MB</span>
+      </div>
+    </div>
+
+    <!-- 列表 -->
+    <div class="list">
+      <div class="row sel">
+        <span class="edge c-link"></span>
+        <div class="txt">
+          <div class="l1">https://github.com/mg-chao/snow-shot</div>
+          <div class="l2"><span>Chrome</span><span>·</span><span>3 分钟前</span></div>
+        </div>
+        <div class="mi">链接</div>
+      </div>
+
+      <div class="row">
+        <span class="edge c-text"></span>
+        <div class="txt">
+          <div class="l1">不做云同步、不做多机、不做手机端、不做密码管理。</div>
+          <div class="l2"><span>DeepSeek</span><span>·</span><span>8 分钟前</span><span class="tag">边界</span></div>
+        </div>
+        <div class="mi">文本</div>
+      </div>
+
+      <div class="row">
+        <span class="edge c-code"></span>
+        <div class="txt">
+          <div class="l1 mono">gh auth login --with-token &lt; dsh-token.txt</div>
+          <div class="l2"><span>PowerShell</span><span>·</span><span>昨天 05:24</span><span class="tag">命令</span></div>
+        </div>
+        <div class="mi">代码</div>
+      </div>
+
+      <div class="row">
+        <span class="edge c-secret"></span>
+        <div class="txt">
+          <div class="l1 mono">github_pat_11BIJ••••••••••••••••</div>
+          <div class="l2"><span>PowerShell</span><span>·</span><span>昨天 01:47</span><span class="tag" style="background:rgba(255,77,79,.18);color:#ff7875">敏感 · 已打码</span></div>
+        </div>
+        <div class="mi">凭据</div>
+      </div>
+
+      <div class="row">
+        <span class="edge c-img"></span>
+        <div class="thumb"></div>
+        <div class="txt">
+          <div class="l1">截图 2026-11-15 052411.png</div>
+          <div class="l2"><span>Snipaste</span><span>·</span><span>昨天 05:31</span><span class="tag">1920×1080</span></div>
+        </div>
+        <div class="mi">图片</div>
+      </div>
+
+      <div class="row">
+        <span class="edge c-file"></span>
+        <div class="txt">
+          <div class="l1 mono">D:\File\GitHub\令牌</div>
+          <div class="l2"><span>资源管理器</span><span>·</span><span>昨天 01:49</span><span class="tag">文件夹</span></div>
+        </div>
+        <div class="mi">文件</div>
+      </div>
+
+      <div class="row">
+        <span class="edge c-text"></span>
+        <div class="txt">
+          <div class="l1">密钥怎么交给我（按安全度排序）方案 A（推荐）：本地文件，不进聊天…</div>
+          <div class="l2"><span>DeepSeek</span><span>·</span><span>昨天 05:23</span><span class="tag">长文本 1.2k</span></div>
+        </div>
+        <div class="mi">文本</div>
+      </div>
+
+      <div class="row">
+        <span class="edge c-code"></span>
+        <div class="txt">
+          <div class="l1 mono">conn = sqlite3.connect("file:Ditto.db?mode=ro", uri=True)</div>
+          <div class="l2"><span>VS Code</span><span>·</span><span>11-14 22:10</span><span class="tag">Python</span></div>
+        </div>
+        <div class="mi">代码</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="kb"><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+    <span class="kb"><kbd>Enter</kbd> 粘贴</span>
+    <span class="kb"><kbd>Ctrl</kbd><kbd>Enter</kbd> 纯文本</span>
+    <span class="kb"><kbd>Tab</kbd> 切分组</span>
+    <span class="sp"></span>
+    <span>已索引 6,135 / 6,135</span>
+  </div>
+</div>
+</body>
+</html>

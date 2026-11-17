@@ -1,0 +1,1547 @@
+<Window x:Class="DittoShell.App.Views.MainWindowView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:DittoShell.App.Controls"
+        xmlns:html="clr-namespace:TheArtOfDev.HtmlRenderer.WPF;assembly=HtmlRenderer.WPF"
+        xmlns:vm="clr-namespace:DittoShell.App.ViewModels"
+        xmlns:loc="clr-namespace:DittoShell.App.Localization"
+        xmlns:views="clr-namespace:DittoShell.App.Views"
+        Title="Ditto Shell" Width="780" Height="642"
+        WindowStyle="None" AllowsTransparency="False" Background="{DynamicResource B.Bg}"
+        WindowStartupLocation="CenterScreen" ResizeMode="CanResize"
+        MinWidth="1080" MinHeight="620"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal"
+        SizeChanged="OnWindowSizeChanged">
+
+  <!-- 系统级阴影 + 精确边缘缩放（不依赖 WM_NCHITTEST 手写） -->
+  <WindowChrome.WindowChrome>
+    <WindowChrome CaptionHeight="0"
+                  ResizeBorderThickness="8"
+                  GlassFrameThickness="0"
+                  CornerRadius="0"
+                  UseAeroCaptionButtons="False"/>
+  </WindowChrome.WindowChrome>
+
+  <Grid Margin="0">
+    <Border Background="{DynamicResource B.Bg}" CornerRadius="0" SnapsToDevicePixels="True">
+
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="44"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ══════ 标题栏 ══════ -->
+        <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+
+          <Border Grid.Column="0" Width="22" Height="22" CornerRadius="6" Margin="14,0,9,0"
+                  VerticalAlignment="Center">
+            <Border.Background>
+              <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#9254DE" Offset="0"/>
+                <GradientStop Color="#1677FF" Offset="1"/>
+              </LinearGradientBrush>
+            </Border.Background>
+            <TextBlock Text="D" Foreground="White" FontSize="12" FontWeight="Bold"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+
+          <TextBlock Grid.Column="1" Text="{Binding Source={x:Static loc:L.Instance}, Path=[app.name]}"
+                     Foreground="{DynamicResource B.Brand}" FontSize="13.5" FontWeight="SemiBold"
+                     VerticalAlignment="Center"/>
+
+          <StackPanel Grid.Column="3" Orientation="Horizontal">
+            <Button x:Name="ThemeBtn" Width="40" Height="44" Style="{StaticResource FlatButton}"
+                    Click="Theme_Click" ToolTip="切换主题">
+              <controls:Icon Kind="Palette" Width="15" Height="15" Stroke="{DynamicResource B.Text2}"/>
+            </Button>
+            <Button Width="40" Height="44" Style="{StaticResource FlatButton}"
+                    Click="Stats_Click" ToolTip="统计">
+              <controls:Icon Kind="Chart" Width="15" Height="15" Stroke="{DynamicResource B.Text2}"/>
+            </Button>
+            <Button Width="40" Height="44" Style="{StaticResource FlatButton}"
+                    Click="Settings_Click" ToolTip="设置">
+              <controls:Icon Kind="Settings" Width="15" Height="15" Stroke="{DynamicResource B.Text2}"/>
+            </Button>
+            <Button Width="46" Height="44" Style="{StaticResource FlatButton}" Click="Minimize_Click">
+              <controls:Icon Kind="Minimize" Width="10" Height="10" Stroke="{DynamicResource B.Text2}"/>
+            </Button>
+            <Button Width="46" Height="44" Style="{StaticResource FlatButton}" Click="Maximize_Click">
+              <controls:Icon Kind="Maximize" Width="10" Height="10" Stroke="{DynamicResource B.Text2}"/>
+            </Button>
+            <Button Width="46" Height="44" Style="{StaticResource FlatButton}" Click="Close_Click">
+              <controls:Icon Kind="Close" Width="10" Height="10" Stroke="{DynamicResource B.Text2}"/>
+            </Button>
+          </StackPanel>
+        </Grid>
+
+        <!-- ══════ 主体 ══════ -->
+        <Grid Grid.Row="1" x:Name="ClipPage"
+              Visibility="{Binding IsClipPageVisible, Converter={StaticResource BoolToVis}}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" MinWidth="140" MaxWidth="360"/>
+            <ColumnDefinition Width="*" MinWidth="260"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition x:Name="PreviewColumn" Width="0" MinWidth="0" MaxWidth="600"/>
+            <ColumnDefinition x:Name="AiDivider" Width="0"/>
+            <ColumnDefinition x:Name="AiColumn" Width="0" MinWidth="0" MaxWidth="560"/>
+          </Grid.ColumnDefinitions>
+
+          <!-- 侧栏 -->
+          <Border Grid.Column="0" Background="{DynamicResource B.BgSide}"
+                  BorderBrush="{DynamicResource B.Divider}" BorderThickness="0,0,1,0">
+            <DockPanel Margin="8,10,8,8">
+
+              <!-- 侧栏搜索 -->
+              <Border DockPanel.Dock="Top" Height="32" CornerRadius="6"
+                      Background="{DynamicResource B.InputBg}" Margin="2,0,2,10">
+                <Grid Margin="10,0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <controls:Icon Grid.Column="0" Kind="Search" Width="13" Height="13"
+                                 Stroke="{DynamicResource B.Text3}" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                  <TextBox Grid.Column="1" x:Name="SideSearchBox"
+                           Style="{StaticResource BorderlessTextBox}" FontSize="12.5"
+                           Text="{Binding GroupFilter, UpdateSourceTrigger=PropertyChanged}"
+                           VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="1" Text="筛选分组名" FontSize="12.5" IsHitTestVisible="False"
+                             Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding Text, ElementName=SideSearchBox}" Value="">
+                            <Setter Property="Visibility" Value="Visible"/>
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </Grid>
+              </Border>
+
+              <!-- 底部占用 -->
+              <Grid DockPanel.Dock="Bottom" Margin="4,8,4,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="830MB" FontSize="10.5" Foreground="{DynamicResource B.Text3}"
+                           VerticalAlignment="Center"/>
+                <Border Grid.Column="1" Height="3" Margin="8,0" CornerRadius="2"
+                        Background="{DynamicResource B.Divider}" VerticalAlignment="Center">
+                  <Border Width="120" HorizontalAlignment="Left" CornerRadius="2"
+                          Background="{DynamicResource B.Primary}"/>
+                </Border>
+                <TextBlock Grid.Column="2" Text="已索引" FontSize="10.5" Foreground="{DynamicResource B.Text3}"
+                           VerticalAlignment="Center"/>
+              </Grid>
+
+              <!-- 滚动区 -->
+              <ScrollViewer x:Name="SideScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                  <ListBox x:Name="ViewsList" ItemsSource="{Binding Views}"
+                           PreviewMouseWheel="ListBox_ForwardWheel"
+                           SelectionChanged="Views_SelectionChanged"
+                           Background="Transparent" BorderThickness="0" Padding="0"
+                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                           ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                      <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                        <Setter Property="Template">
+                          <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                              <ContentPresenter/>
+                            </ControlTemplate>
+                          </Setter.Value>
+                        </Setter>
+                      </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="{x:Type vm:GroupRowVM}">
+                        <Border x:Name="bd" Height="36" CornerRadius="4" Background="Transparent"
+                                Padding="{Binding Padding}" Margin="0,1" Cursor="Hand">
+                          <Grid>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="Auto"/>
+                              <ColumnDefinition Width="Auto"/>
+                              <ColumnDefinition Width="*"/>
+                              <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 选中时的左侧 3px 主色竖条 -->
+                            <Border Grid.Column="0" Width="3" CornerRadius="1.5" Margin="-6,6,0,6"
+                                    Background="{DynamicResource B.Primary}"
+                                    Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}"/>
+                            <controls:Icon x:Name="ic" Grid.Column="1" Kind="{Binding Icon}" Width="15" Height="15"
+                                           Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="tx" Grid.Column="2" Text="{Binding Name}" FontSize="13"
+                                       Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="ct" Grid.Column="3" Text="{Binding Count}" FontSize="11"
+                                       Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"/>
+                          </Grid>
+                        </Border>
+                        <DataTemplate.Triggers>
+                          <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource B.Selected}"/>
+                            <Setter TargetName="ic" Property="Stroke" Value="{DynamicResource B.Primary}"/>
+                            <Setter TargetName="tx" Property="Foreground" Value="{DynamicResource B.Primary}"/>
+                            <Setter TargetName="tx" Property="FontWeight" Value="SemiBold"/>
+                            <Setter TargetName="ct" Property="Foreground" Value="{DynamicResource B.Primary}"/>
+                          </DataTrigger>
+                        </DataTemplate.Triggers>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ListBox>
+
+
+                  <StackPanel Orientation="Horizontal" Margin="10,14,10,6">
+
+                    <TextBlock Text="{Binding GroupSummary}" FontSize="11" Foreground="{DynamicResource B.Text3}"/>
+                  </StackPanel>
+
+                  <ListBox x:Name="GroupsList" ItemsSource="{Binding Groups}"
+                           MouseRightButtonUp="GroupsArea_RightClick"
+                           PreviewMouseWheel="ListBox_ForwardWheel"
+                           SelectionChanged="Groups_SelectionChanged"
+                           AllowDrop="True"
+                           PreviewMouseLeftButtonDown="GroupsList_PreviewMouseLeftButtonDown"
+                           PreviewMouseMove="GroupsList_PreviewMouseMove"
+                           DragOver="GroupsList_DragOver"
+                           Drop="GroupsList_Drop"
+                           Background="Transparent" BorderThickness="0" Padding="0"
+                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                           ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                      <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Template">
+                          <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                              <ContentPresenter/>
+                            </ControlTemplate>
+                          </Setter.Value>
+                        </Setter>
+                      </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="{x:Type vm:GroupRowVM}">
+                        <Border Height="32" CornerRadius="6" Background="Transparent"
+                                Padding="{Binding Padding}" Margin="0,1" Cursor="Hand"
+                                Tag="{Binding}">
+                          <Border.Style>
+                            <Style TargetType="Border">
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                  <Setter Property="Background" Value="{DynamicResource B.Selected}"/>
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </Border.Style>
+                          <Border.ContextMenu>
+                            <ContextMenu Opened="Menu_Opened">
+                              <MenuItem Header="折叠 / 展开" Click="GroupToggle_Click"/>
+                              <Separator/>
+
+                              <MenuItem Header="重命名…" Click="GroupRename_Click"/>
+                              <MenuItem Header="新建子分组…" Click="GroupNewChild_Click"/>
+                              <MenuItem Header="移到顶层" Click="GroupMoveTop_Click"/>
+                              <MenuItem Header="复制组名" Click="GroupCopyName_Click"/>
+                              <Separator/>
+
+                              <MenuItem Header="只搜这个组" Click="GroupSearchInside_Click"/>
+                              <MenuItem Header="导出这个组…" Click="GroupExport_Click"/>
+                              <Separator/>
+
+                              <!-- 专为「00 待清理」这类组准备 -->
+                              <MenuItem Header="组内条目移到未归类…" Click="GroupMoveAllToUngrouped_Click"/>
+                              <MenuItem Header="清空这个组…" Click="GroupPurge_Click"
+                                        Foreground="#FFD4380D"/>
+                              <Separator/>
+                              <MenuItem Header="删除分组（保留条目）" Click="GroupDelete_Click"/>
+                            </ContextMenu>
+                          </Border.ContextMenu>
+                          <Grid>
+                            <!-- 拖动放置视觉：上插入线 -->
+                            <Border Height="2" VerticalAlignment="Top" Margin="0,-1,0,0"
+                                    Background="{DynamicResource B.Primary}"
+                                    Visibility="{Binding ShowInsertTop, Converter={StaticResource BoolToVis}}"/>
+
+                            <!-- 拖动放置视觉：下插入线 -->
+                            <Border Height="2" VerticalAlignment="Bottom" Margin="0,0,0,-1"
+                                    Background="{DynamicResource B.Primary}"
+                                    Visibility="{Binding ShowInsertBottom, Converter={StaticResource BoolToVis}}"/>
+
+                            <!-- 拖动放置视觉：移入高亮 -->
+                            <Border CornerRadius="5" Background="{DynamicResource B.Selected}"
+                                    BorderBrush="{DynamicResource B.Primary}" BorderThickness="2"
+                                    Visibility="{Binding ShowDropInto, Converter={StaticResource BoolToVis}}"/>
+
+                            <Grid>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="Auto"/>
+                              <ColumnDefinition Width="Auto"/>
+                              <ColumnDefinition Width="Auto"/>
+                              <ColumnDefinition Width="Auto"/>
+                              <ColumnDefinition Width="*"/>
+                              <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 选中竖条 -->
+                            <Border Grid.Column="0" Width="3" CornerRadius="1.5" Margin="-6,5,0,5"
+                                    Background="{DynamicResource B.Primary}"
+                                    Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}"/>
+
+                            <!-- 折叠箭头 -->
+                            <Button Grid.Column="1" Width="14" Height="14" Padding="0"
+                                    Style="{StaticResource FlatButton}" Background="Transparent"
+                                    Tag="{Binding}" Click="GroupArrow_Click"
+                                    Visibility="{Binding HasChildren, Converter={StaticResource BoolToVis}}">
+                              <controls:Icon Width="9" Height="9" Stroke="{DynamicResource B.Text3}"
+                                             Kind="{Binding ArrowGlyph}"/>
+                            </Button>
+
+                            <!-- 层级缩进（每级 14px） -->
+                            <Border Grid.Column="2" Width="{Binding IndentWidth}"/>
+
+                            <!-- 连接线（├ └ │） -->
+                            <TextBlock Grid.Column="3" Text="{Binding Connector}" FontSize="10.5"
+                                       FontFamily="Cascadia Mono, Consolas, Courier New"
+                                       Foreground="{DynamicResource B.Text3}"
+                                       VerticalAlignment="Center" Margin="0,0,2,0"
+                                       Visibility="{Binding ShowConnector, Converter={StaticResource BoolToVis}}"/>
+
+                            <!-- 组名（按深度分级） -->
+                            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                              <Ellipse Width="5" Height="5" Fill="{Binding DotBrush}"
+                                       Margin="0,0,7,0" VerticalAlignment="Center"/>
+                              <TextBlock Text="{Binding Name}"
+                                         FontSize="{Binding NameFontSize}"
+                                         FontWeight="{Binding NameWeight}"
+                                         Foreground="{DynamicResource B.Text2}"
+                                         VerticalAlignment="Center"
+                                         TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+
+                            <TextBlock Grid.Column="5" Text="{Binding Count}" FontSize="11"
+                                       Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"/>
+                            </Grid>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ListBox>
+
+                </StackPanel>
+              </ScrollViewer>
+            </DockPanel>
+          </Border>
+
+          <!-- 标签筛选浮层 -->
+          <Popup x:Name="TagPanel" PlacementTarget="{Binding ElementName=TagFilterBtn}"
+                 Placement="Bottom" VerticalOffset="6" HorizontalOffset="0"
+                 IsOpen="{Binding IsTagPanelOpen, Mode=TwoWay}"
+                 StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Width="380" Background="{DynamicResource B.Bg}" CornerRadius="6"
+                    BorderBrush="{DynamicResource B.Border}" BorderThickness="1" Margin="6">
+              <Border.Effect>
+                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270"
+                                  Opacity="0.08" Color="#101828"/>
+              </Border.Effect>
+              <Grid Margin="12">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="*"/>
+                  <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                  <TextBlock Text="标签筛选" FontSize="12.5" FontWeight="SemiBold"
+                             Foreground="{DynamicResource B.Text}"/>
+                  <Button HorizontalAlignment="Right" Height="20" Padding="8,0"
+                          Style="{StaticResource FlatButton}" Command="{Binding ClearTagsCommand}">
+                    <TextBlock Text="清空" FontSize="10.5" Foreground="{DynamicResource B.Text3}"/>
+                  </Button>
+                </Grid>
+
+                <Border Grid.Row="1" Height="30" CornerRadius="4" Background="{DynamicResource B.InputBg}"
+                        Margin="0,0,0,8">
+                  <TextBox Style="{StaticResource BorderlessTextBox}"
+                           Text="{Binding TagSearchText, UpdateSourceTrigger=PropertyChanged}"
+                           FontSize="12" Margin="9,0" VerticalContentAlignment="Center"/>
+                </Border>
+
+                <CheckBox Grid.Row="2" Content="严格（必须包含全部选中标签）" Margin="0,0,0,8"
+                          FontSize="11.5" IsChecked="{Binding StrictTagMode, Mode=TwoWay}"
+                          Foreground="{DynamicResource B.Text2}"/>
+
+                <ScrollViewer Grid.Row="3" MaxHeight="240" VerticalScrollBarVisibility="Auto">
+                  <ItemsControl ItemsSource="{Binding TagList}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel/>
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="{x:Type vm:TagChipVM}">
+                        <Border CornerRadius="9" Padding="8,2" Margin="0,0,6,6" Cursor="Hand"
+                                Tag="{Binding}" MouseLeftButtonUp="TagChip_Click2">
+                          <Border.Style>
+                            <Style TargetType="Border">
+                              <Setter Property="Background" Value="{DynamicResource B.InputBg}"/>
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                  <Setter Property="Background" Value="{DynamicResource B.Primary}"/>
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </Border.Style>
+                          <TextBlock FontSize="11">
+                            <TextBlock.Style>
+                              <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="{Binding Display}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource B.Text2}"/>
+                                <Style.Triggers>
+                                  <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                    <Setter Property="Foreground" Value="White"/>
+                                  </DataTrigger>
+                                </Style.Triggers>
+                              </Style>
+                            </TextBlock.Style>
+                          </TextBlock>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+
+                <TextBlock Grid.Row="4" FontSize="10.5" Margin="0,6,0,0"
+                           Foreground="{DynamicResource B.Text3}"
+                           Text="点选即生效，关闭浮层筛选保留"/>
+              </Grid>
+            </Border>
+          </Popup>
+
+          <!-- 查询解释浮层 -->
+          <Popup x:Name="ExplainPanel" PlacementTarget="{Binding ElementName=SearchBorder}"
+                 Placement="Bottom" VerticalOffset="6"
+                 IsOpen="{Binding IsExplainOpen, Mode=TwoWay}"
+                 StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Width="340" Background="{DynamicResource B.Bg}" CornerRadius="6"
+                    BorderBrush="{DynamicResource B.Border}" BorderThickness="1" Margin="6">
+              <Border.Effect>
+                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270"
+                                  Opacity="0.08" Color="#101828"/>
+              </Border.Effect>
+              <StackPanel Margin="14,12">
+                <TextBlock Text="系统这样理解你的查询" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{DynamicResource B.Text}" Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding ExplainText}" FontSize="11.5" TextWrapping="Wrap"
+                           Foreground="{DynamicResource B.Text2}" LineHeight="20"
+                           FontFamily="{StaticResource Font.Mono}"/>
+              </StackPanel>
+            </Border>
+          </Popup>
+
+          <!-- 侧栏 / 列表 分隔条 -->
+          <GridSplitter Grid.Column="0" HorizontalAlignment="Right" Width="8"
+                        Background="Transparent" ResizeBehavior="PreviousAndNext"
+                        ResizeDirection="Columns" ShowsPreview="False" Cursor="SizeWE"
+                        Panel.ZIndex="99">
+            <GridSplitter.Template>
+              <ControlTemplate TargetType="GridSplitter">
+                <Border Background="Transparent">
+                  <Border x:Name="line" Width="1" HorizontalAlignment="Right"
+                          Background="{DynamicResource B.Divider}"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="line" Property="Background" Value="{DynamicResource B.Primary}"/>
+                    <Setter TargetName="line" Property="Width" Value="2"/>
+                  </Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </GridSplitter.Template>
+          </GridSplitter>
+
+        <!-- 详情 ↔ AI 抽屉 之间的拖动条（手动 Thumb，只调 AI 列，不影响预览列） -->
+        <Thumb Grid.Column="4" x:Name="AiSplitter" Width="6" Cursor="SizeWE"
+               HorizontalAlignment="Center" VerticalAlignment="Stretch"
+               Visibility="{Binding AiChat.IsOpen, Converter={StaticResource BoolToVis}}"
+               DragDelta="AiSplitter_DragDelta"
+               DragStarted="AiSplitter_DragStarted"
+               DragCompleted="AiSplitter_DragCompleted">
+          <Thumb.Template>
+            <ControlTemplate TargetType="Thumb">
+              <Border Background="Transparent">
+                <Border x:Name="line" Width="1" HorizontalAlignment="Center"
+                        Background="{DynamicResource B.Divider}"/>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="line" Property="Width" Value="2"/>
+                  <Setter TargetName="line" Property="Background"
+                          Value="{DynamicResource B.Primary}"/>
+                </Trigger>
+                <Trigger Property="IsDragging" Value="True">
+                  <Setter TargetName="line" Property="Width" Value="2"/>
+                  <Setter TargetName="line" Property="Background"
+                          Value="{DynamicResource B.Primary}"/>
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Thumb.Template>
+        </Thumb>
+
+        <!-- ══════ AI 抽屉 ══════ -->
+        <views:AiDrawerView x:Name="AiDrawer" Grid.Column="5"/>
+
+          <!-- 内容区 -->
+          <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="34"/>
+            </Grid.RowDefinitions>
+
+            <!-- ══════ 搜索区（重设计）══════ -->
+            <Grid Grid.Row="0" Margin="18,14,18,8">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+
+              <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="Auto"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" x:Name="SearchBorder" Height="34" CornerRadius="6"
+                        Background="{DynamicResource B.InputBg}">
+                  <Grid Margin="11,0">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="Auto"/>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <controls:Icon Grid.Column="0" Kind="Search" Width="14" Height="14"
+                                   Stroke="{DynamicResource B.Text3}" Margin="0,0,8,0"
+                                   VerticalAlignment="Center"/>
+
+                    <TextBox Grid.Column="1" x:Name="SearchBox"
+                             Style="{StaticResource BorderlessTextBox}" FontSize="13"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalAlignment="Center" VerticalContentAlignment="Center"
+                             Padding="0,0,0,1"
+                             GotFocus="SearchBox_GotFocus"
+                             LostFocus="SearchBox_LostFocus"
+                             PreviewKeyDown="SearchBox_PreviewKeyDown"/>
+
+                    <TextBlock Grid.Column="1" IsHitTestVisible="False" VerticalAlignment="Center"
+                               FontSize="13" Foreground="{DynamicResource B.Text3}"
+                               TextTrimming="CharacterEllipsis" Margin="0,0,50,0"
+                               Text="搜索全部历史（支持正则、标签）">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                          <Setter Property="Visibility" Value="Collapsed"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding SearchText}" Value="">
+                              <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+
+                    <Border Grid.Column="2" BorderBrush="{DynamicResource B.Border}" BorderThickness="1"
+                            CornerRadius="4" Padding="4,0" VerticalAlignment="Center"
+                            Background="{DynamicResource B.Bg}">
+                      <TextBlock Text="Ctrl K" FontSize="10" Foreground="{DynamicResource B.Text3}"/>
+                    </Border>
+                  </Grid>
+                </Border>
+
+                <ComboBox Grid.Column="1" x:Name="SortCombo" Style="{StaticResource AntComboBox}"
+                          Width="120" Margin="8,0,0,0"
+                          SelectionChanged="Sort_SelectionChanged">
+                  <ComboBoxItem Content="最新优先" IsSelected="True"/>
+                  <ComboBoxItem Content="最早优先"/>
+                  <ComboBoxItem Content="最长优先"/>
+                  <ComboBoxItem Content="最短优先"/>
+                  <ComboBoxItem Content="按分组"/>
+                  <ComboBoxItem Content="按类型"/>
+                  <ComboBoxItem Content="粘贴次数"/>
+                  <ComboBoxItem Content="最近使用"/>
+                  <ComboBoxItem Content="最久未用"/>
+                </ComboBox>
+
+                <Button Grid.Column="2" x:Name="FilterBtn" Style="{StaticResource ChipButton}"
+                        Margin="8,0,0,0" Click="FilterPanel_Click" ToolTip="筛选条件">
+                  <StackPanel Orientation="Horizontal">
+                    <controls:Icon Kind="Filter" Width="13" Height="13"
+                                   Stroke="{DynamicResource B.Text2}" Margin="0,0,5,0"/>
+                    <TextBlock Text="筛选" FontSize="12.5" Foreground="{DynamicResource B.Text2}"/>
+                    <controls:Icon Kind="ChevronDown" Width="11" Height="11"
+                                   Stroke="{DynamicResource B.Text3}" Margin="4,0,0,0"/>
+                  </StackPanel>
+                </Button>
+
+                <Button Grid.Column="3" x:Name="TagFilterBtn" Style="{StaticResource ChipButton}"
+                        Margin="8,0,0,0" Click="TagFilter_Click" ToolTip="按标签筛选">
+                  <StackPanel Orientation="Horizontal">
+                    <controls:Icon Kind="Tag" Width="13" Height="13"
+                                   Stroke="{DynamicResource B.Text2}" Margin="0,0,5,0"/>
+                    <TextBlock Text="{Binding TagButtonText}" FontSize="12.5"
+                               Foreground="{DynamicResource B.Text2}"/>
+                  </StackPanel>
+                </Button>
+
+                <Button Grid.Column="4" Width="30" Height="30" Padding="0" Margin="6,0,0,0"
+                        Style="{StaticResource FlatButton}" Background="Transparent"
+                        Click="OpenAiDrawer_Click" ToolTip="AI 对话搜索">
+                  <controls:Icon Kind="Wand" Width="14" Height="14"
+                                 Stroke="{DynamicResource B.Purple}"/>
+                </Button>
+
+                <Button Grid.Column="5" Width="30" Height="30" Padding="0" Margin="2,0,0,0"
+                        Style="{StaticResource FlatButton}" Background="Transparent"
+                        Command="{Binding ToggleExplainCommand}" ToolTip="解释当前查询">
+                  <TextBlock Text="?" FontSize="12" FontWeight="SemiBold"
+                             Foreground="{DynamicResource B.Text3}"/>
+                </Button>
+
+                <Button Grid.Column="6" Height="30" Padding="10,0" Margin="6,0,0,0"
+                        Style="{StaticResource ChipButton}" Click="AiOrganize_Click"
+                        ToolTip="让 AI 自动整理未归类条目">
+                  <StackPanel Orientation="Horizontal">
+                    <controls:Icon Kind="Wand" Width="13" Height="13"
+                                   Stroke="{DynamicResource B.Purple}" Margin="0,0,5,0"/>
+                    <TextBlock Text="整理" FontSize="12.5"
+                               Foreground="{DynamicResource B.Purple}"/>
+                  </StackPanel>
+                </Button>
+              </Grid>
+
+              <!-- AI 状态条（搜索中 / 有结果 / 出错都显示） -->
+              <Border Grid.Row="2" Margin="0,6,0,0" Padding="10,5" CornerRadius="5"
+                      Background="#FFF7F0FF" BorderBrush="{DynamicResource B.Purple}"
+                      BorderThickness="1"
+                      Visibility="{Binding AiBarVisible, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <controls:Icon Kind="Wand" Width="12" Height="12"
+                                   Stroke="{DynamicResource B.Purple}" Margin="0,0,6,0"/>
+                    <TextBlock Text="{Binding AiSearchHint}" FontSize="11"
+                               Foreground="{DynamicResource B.Purple}"
+                               VerticalAlignment="Center" TextWrapping="Wrap"/>
+                  </StackPanel>
+                  <Button HorizontalAlignment="Right" Height="22" Padding="10,0"
+                          Background="{DynamicResource B.Purple}"
+                          BorderThickness="0" Cursor="Hand"
+                          Command="{Binding RunAiSearchCommand}"
+                          Visibility="{Binding IsAiSearching, Converter={StaticResource InverseBoolToVis}}">
+                    <Button.Template>
+                      <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                          <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                      </ControlTemplate>
+                    </Button.Template>
+                    <TextBlock Text="AI 搜索" FontSize="10.5" Foreground="White"/>
+                  </Button>
+                </Grid>
+              </Border>
+
+              <Border Grid.Row="1" Margin="0,8,0,0" Padding="10,6" CornerRadius="5"
+                      Background="{DynamicResource B.InputBg}"
+                      Visibility="{Binding HasFilters, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+
+                  <ItemsControl Grid.Column="0" ItemsSource="{Binding FilterTags}" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Border Background="{DynamicResource B.Bg}" CornerRadius="4"
+                                BorderBrush="{DynamicResource B.Border}" BorderThickness="1"
+                                Padding="7,2" Margin="0,0,5,0">
+                          <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="#" FontSize="11"
+                                       Foreground="{DynamicResource B.Text3}"/>
+                            <TextBlock Text="{Binding}" FontSize="11"
+                                       Foreground="{DynamicResource B.Text}"/>
+                            <Button Width="12" Height="12" Padding="0" Margin="5,0,0,0"
+                                    Style="{StaticResource FlatButton}" Background="Transparent"
+                                    Tag="{Binding}" Click="RemoveFilterTag_Click">
+                              <TextBlock Text="×" FontSize="10"
+                                         Foreground="{DynamicResource B.Text3}"/>
+                            </Button>
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+
+                  <TextBlock Grid.Column="1" Text="{Binding FilterSummary}" FontSize="11"
+                             Foreground="{DynamicResource B.Text2}" Margin="0,0,10,0"
+                             VerticalAlignment="Center"/>
+                </Grid>
+              </Border>
+            </Grid>
+
+
+            <!-- ══════ 斜杠命令面板（覆盖层）══════ -->
+            <Grid Grid.Row="0" Grid.RowSpan="3" Background="#22000000" Panel.ZIndex="200"
+                  Visibility="{Binding IsSlashOpen, Converter={StaticResource BoolToVis}}"
+                  MouseLeftButtonDown="CmdOverlay_Click">
+              <Border VerticalAlignment="Top" HorizontalAlignment="Left" Width="440"
+                      MaxHeight="420" Margin="18,56,0,0"
+                      Background="{DynamicResource B.Bg}" CornerRadius="6"
+                      BorderBrush="{DynamicResource B.Border}" BorderThickness="1">
+                <Border.Effect>
+                  <DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270"
+                                    Opacity="0.12" Color="#101828"/>
+                </Border.Effect>
+                <Grid>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                  </Grid.RowDefinitions>
+
+                  <TextBlock Grid.Row="0" Text="筛选器" FontSize="10" FontWeight="SemiBold"
+                             Foreground="{DynamicResource B.Text3}" Margin="13,10,13,4"/>
+
+                  <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="370">
+                    <ItemsControl ItemsSource="{Binding SlashItems}" Margin="5,0,5,6">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:SlashItemVM}">
+                          <Border Height="32" CornerRadius="4" Padding="8,0" Margin="0,1"
+                                  Background="Transparent" Cursor="Hand"
+                                  Tag="{Binding}" MouseLeftButtonUp="SlashItem_Click">
+                            <Border.Style>
+                              <Style TargetType="Border">
+                                <Style.Triggers>
+                                  <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource B.Hover}"/>
+                                  </Trigger>
+                                </Style.Triggers>
+                              </Style>
+                            </Border.Style>
+                            <Grid>
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                              </Grid.ColumnDefinitions>
+                              <controls:Icon Grid.Column="0" Kind="{Binding Icon}" Width="13" Height="13"
+                                             Stroke="{Binding Color}" Margin="0,0,8,0"
+                                             VerticalAlignment="Center"/>
+                              <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12"
+                                         Foreground="{DynamicResource B.Text}" VerticalAlignment="Center"/>
+                              <Border Grid.Column="2" HorizontalAlignment="Left" Margin="8,0,0,0"
+                                      Background="{DynamicResource B.InputBg}" CornerRadius="3"
+                                      Padding="4,1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Alias}" FontSize="10"
+                                           Foreground="{DynamicResource B.Text3}"
+                                           FontFamily="{StaticResource Font.Mono}"/>
+                              </Border>
+                              <TextBlock Grid.Column="3" Text="{Binding Hint}" FontSize="10.5"
+                                         Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"/>
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+                </Grid>
+              </Border>
+            </Grid>
+
+            <!-- ══════ 自动补全浮层 ══════ -->
+            <Popup x:Name="SuggestPanel" PlacementTarget="{Binding ElementName=SearchBorder}"
+                   Placement="Bottom" VerticalOffset="4"
+                   IsOpen="{Binding IsSuggestOpen, Mode=TwoWay}"
+                   StaysOpen="True" AllowsTransparency="True" PopupAnimation="Fade"
+                   Width="{Binding ActualWidth, ElementName=SearchBorder}">
+              <Border Background="{DynamicResource B.Bg}" CornerRadius="6"
+                      BorderBrush="{DynamicResource B.Border}" BorderThickness="1" Margin="6">
+                <Border.Effect>
+                  <DropShadowEffect BlurRadius="10" ShadowDepth="3" Direction="270"
+                                    Opacity="0.10" Color="#101828"/>
+                </Border.Effect>
+                <StackPanel Margin="4,4">
+                  <ItemsControl ItemsSource="{Binding Suggestions}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="{x:Type vm:SearchSuggestVM}">
+                        <Border Height="32" CornerRadius="4" Padding="8,0" Margin="0,1"
+                                Background="Transparent" Cursor="Hand"
+                                Tag="{Binding}" MouseLeftButtonUp="Suggest_Click">
+                          <Border.Style>
+                            <Style TargetType="Border">
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+                                  <Setter Property="Background" Value="{DynamicResource B.Hover}"/>
+                                </DataTrigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                  <Setter Property="Background" Value="{DynamicResource B.Hover}"/>
+                                </Trigger>
+                              </Style.Triggers>
+                            </Style>
+                          </Border.Style>
+                          <Grid>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="Auto"/>
+                              <ColumnDefinition Width="*"/>
+                              <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <controls:Icon Grid.Column="0" Kind="{Binding Icon}" Width="13" Height="13"
+                                           Stroke="{DynamicResource B.Text3}" Margin="0,0,8,0"
+                                           VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="12"
+                                       Foreground="{DynamicResource B.Text}" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="2" Text="{Binding CountText}" FontSize="10.5"
+                                       Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"/>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </Popup>
+
+            <!-- ══════ 搜索历史浮层 ══════ -->
+            <Popup x:Name="RecentPanel" PlacementTarget="{Binding ElementName=SearchBorder}"
+                   Placement="Bottom" VerticalOffset="4"
+                   IsOpen="{Binding IsRecentOpen, Mode=TwoWay}"
+                   StaysOpen="True" AllowsTransparency="True" PopupAnimation="Fade"
+                   Width="{Binding ActualWidth, ElementName=SearchBorder}">
+              <Border Background="{DynamicResource B.Bg}" CornerRadius="6"
+                      BorderBrush="{DynamicResource B.Border}" BorderThickness="1" Margin="6">
+                <Border.Effect>
+                  <DropShadowEffect BlurRadius="10" ShadowDepth="3" Direction="270"
+                                    Opacity="0.10" Color="#101828"/>
+                </Border.Effect>
+                <StackPanel Margin="6">
+                  <Grid Margin="4,2,4,6">
+                    <TextBlock Text="最近搜索" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{DynamicResource B.Text3}"/>
+                  </Grid>
+
+                  <TextBlock Text="还没有搜索记录。搜过一次后这里会出现。"
+                             FontSize="11" Foreground="{DynamicResource B.Text3}"
+                             Margin="10,4,10,10" TextWrapping="Wrap"
+                             Visibility="{Binding RecentIsEmpty, Converter={StaticResource BoolToVis}}"/>
+                  <ItemsControl ItemsSource="{Binding RecentSearches}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="{x:Type vm:RecentSearchVM}">
+                        <Border Height="30" CornerRadius="4" Padding="8,0" Background="Transparent"
+                                Cursor="Hand" Tag="{Binding}" MouseLeftButtonUp="Recent_Click">
+                          <Border.Style>
+                            <Style TargetType="Border">
+                              <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                  <Setter Property="Background" Value="{DynamicResource B.Hover}"/>
+                                </Trigger>
+                              </Style.Triggers>
+                            </Style>
+                          </Border.Style>
+                          <Grid>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="Auto"/>
+                              <ColumnDefinition Width="*"/>
+                              <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <controls:Icon Grid.Column="0" Kind="Clock" Width="12" Height="12"
+                                           Stroke="{DynamicResource B.Text3}" Margin="0,0,8,0"
+                                           VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Text}" FontSize="12"
+                                       Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       FontFamily="{StaticResource Font.Mono}"/>
+                            <TextBlock Grid.Column="2" Text="{Binding HitsText}" FontSize="10.5"
+                                       Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"/>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </Popup>
+
+            <!-- ══════ 筛选面板 ══════ -->
+            <Popup x:Name="FilterPanel" PlacementTarget="{Binding ElementName=FilterBtn}"
+                   Placement="Bottom" VerticalOffset="6"
+                   IsOpen="{Binding IsFilterPanelOpen, Mode=TwoWay}"
+                   StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+              <Border Width="380" Background="{DynamicResource B.Bg}" CornerRadius="6"
+                      BorderBrush="{DynamicResource B.Border}" BorderThickness="1" Margin="6">
+                <Border.Effect>
+                  <DropShadowEffect BlurRadius="10" ShadowDepth="3" Direction="270"
+                                    Opacity="0.10" Color="#101828"/>
+                </Border.Effect>
+                <StackPanel Margin="14,12">
+                  <Grid Margin="0,0,0,10">
+                    <TextBlock Text="筛选条件" FontSize="12.5" FontWeight="SemiBold"
+                               Foreground="{DynamicResource B.Text}"/>
+                    <Button HorizontalAlignment="Right" Height="20" Padding="8,0"
+                            Style="{StaticResource FlatButton}"
+                            Command="{Binding ClearAllFiltersCommand}">
+                      <TextBlock Text="清空全部" FontSize="10.5"
+                                 Foreground="{DynamicResource B.Text3}"/>
+                    </Button>
+                  </Grid>
+
+                  <TextBlock Text="类型" FontSize="11" Foreground="{DynamicResource B.Text3}" Margin="0,0,0,5"/>
+                  <WrapPanel Margin="0,0,0,10">
+                    <Button Content="全部" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="" Click="FilterKind_Click"/>
+                    <Button Content="图片" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="image" Click="FilterKind_Click"/>
+                    <Button Content="链接" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="link" Click="FilterKind_Click"/>
+                    <Button Content="代码" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="code" Click="FilterKind_Click"/>
+                    <Button Content="文件" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="file" Click="FilterKind_Click"/>
+                    <Button Content="凭据" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="secret" Click="FilterKind_Click"/>
+                    <Button Content="命令" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="command" Click="FilterKind_Click"/>
+                    <Button Content="长文本" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="longtext" Click="FilterKind_Click"/>
+                    <Button Content="联系" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="contact" Click="FilterKind_Click"/>
+                  </WrapPanel>
+
+                  <TextBlock Text="时间" FontSize="11" Foreground="{DynamicResource B.Text3}" Margin="0,0,0,5"/>
+                  <WrapPanel Margin="0,0,0,10">
+                    <Button Content="全部" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="" Click="FilterAge_Click"/>
+                    <Button Content="今天" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="today" Click="FilterAge_Click"/>
+                    <Button Content="最近 7 天" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="7d" Click="FilterAge_Click"/>
+                    <Button Content="最近 30 天" Style="{StaticResource ChipButton}" Height="26"
+                            Margin="0,0,6,6" Tag="30d" Click="FilterAge_Click"/>
+                  </WrapPanel>
+
+                  <TextBlock Text="标签" FontSize="11" Foreground="{DynamicResource B.Text3}" Margin="0,0,0,5"/>
+                  <Border Height="30" CornerRadius="4" Background="{DynamicResource B.InputBg}">
+                    <TextBox x:Name="FilterTagBox" Style="{StaticResource BorderlessTextBox}"
+                             FontSize="12" Margin="9,0" VerticalContentAlignment="Center"
+                             PreviewKeyDown="FilterTagBox_KeyDown"/>
+                  </Border>
+                  <TextBlock Text="输入标签名后按回车添加" FontSize="10"
+                             Foreground="{DynamicResource B.Text3}" Margin="2,4,0,0"/>
+                </StackPanel>
+              </Border>
+            </Popup>
+
+            <!-- 列表头 -->
+            <Grid Grid.Row="1" Margin="18,0,18,8">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"
+                         Foreground="{DynamicResource B.Text}"/>
+              <TextBlock Grid.Column="1" Text="{Binding Items.Count, StringFormat='  {0} 条'}"
+                         FontSize="11.5" Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"/>
+              <TextBlock Grid.Column="3" Text="{Binding Source={x:Static loc:L.Instance}, Path=[main.hint.expand]}"
+                         FontSize="11.5" Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- 列表 -->
+            <Button Grid.Row="2" VerticalAlignment="Bottom" Height="34" Margin="0,0,0,0"
+                    Panel.ZIndex="5" Background="{DynamicResource B.Bg}"
+                    BorderBrush="{DynamicResource B.Divider}" BorderThickness="0,1,0,0"
+                    Command="{Binding LoadMoreCommand}"
+                    Visibility="{Binding HasMore, Converter={StaticResource BoolToVis}}">
+              <TextBlock Text="{Binding LoadMoreText}" FontSize="11.5"
+                         Foreground="{DynamicResource B.Primary}"/>
+            </Button>
+
+            <ListBox Grid.Row="2" x:Name="ItemsList" ItemsSource="{Binding Items}"
+                     AlternationCount="2" SelectionMode="Extended"
+                     SelectedItem="{Binding Selected, Mode=TwoWay}"
+                     SelectionChanged="ItemsList_SelectionChanged"
+                     PreviewMouseLeftButtonDown="ItemsList_PreviewMouseLeftButtonDown"
+                     PreviewMouseMove="ItemsList_PreviewMouseMove"
+                     VirtualizingStackPanel.IsVirtualizing="True"
+                     VirtualizingStackPanel.VirtualizationMode="Recycling"
+                     Background="Transparent" BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     Margin="8,0,8,0" Padding="0">
+              <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                  <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                  <Setter Property="Padding" Value="0"/>
+                  <Setter Property="Template">
+                    <Setter.Value>
+                      <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="6" Margin="0,1">
+                          <Border.ContextMenu>
+                            <!-- Absolute：offset 就是屏幕坐标；MaxWidth 280 让快捷键完整显示 -->
+                            <ContextMenu Placement="MousePoint" MaxWidth="280"
+                                         Opened="Menu_Opened">
+                              <MenuItem Header="组" Tag="group">
+                                <MenuItem Header="移到分组…" Tag="movegroup" Click="ClipMenu_Click"/>
+                                <MenuItem Header="新建分组…" Tag="newgroup" Click="ClipMenu_Click"/>
+                                <Separator/>
+                                <MenuItem Header="取消归类" Tag="ungroup" Click="ClipMenu_Click"/>
+                              </MenuItem>
+
+                              <MenuItem Header="查看完整说明" Tag="preview" Click="ClipMenu_Click"
+                                        InputGestureText="F3"/>
+
+                              <MenuItem Header="特殊粘贴" Tag="specialpaste">
+                                <MenuItem Header="纯文本" Tag="plain" Click="ClipMenu_Click"/>
+                                <MenuItem Header="保留原格式" Tag="paste" Click="ClipMenu_Click"/>
+                                <Separator/>
+                                <MenuItem Header="复制 HTML 源码" Tag="copyhtml" Click="ClipMenu_Click"/>
+                                <MenuItem Header="复制图片" Tag="copyimage" Click="ClipMenu_Click"/>
+                              </MenuItem>
+
+                              <MenuItem Header="使用所选条目进行过滤" Tag="filterby" Click="ClipMenu_Click"/>
+
+                              <Separator/>
+
+                              <MenuItem Header="删除条目" Tag="delete" Click="ClipMenu_Click"
+                                        InputGestureText="Delete"/>
+                              <MenuItem Header="编辑剪贴项" Tag="edit" Click="ClipMenu_Click"
+                                        InputGestureText="Ctrl+E"/>
+                              <MenuItem Header="新建剪贴项" Tag="newitem" Click="ClipMenu_Click"
+                                        InputGestureText="Ctrl+N"/>
+
+                              <Separator/>
+
+                              <MenuItem Header="属性" Tag="props" Click="ClipMenu_Click"
+                                        InputGestureText="Alt+Enter"/>
+
+                              <MenuItem Header="快捷属性" Tag="quickprops">
+                                <MenuItem Header="禁止自动删除" Tag="keep" Click="ClipMenu_Click"/>
+                                <MenuItem Header="允许自动删除" Tag="unkeep" Click="ClipMenu_Click"/>
+                                <Separator/>
+                                <MenuItem Header="标记为隐私" Tag="privacy" Click="ClipMenu_Click"/>
+                                <MenuItem Header="打开来源程序" Tag="opensource" Click="ClipMenu_Click"/>
+                              </MenuItem>
+
+                              <MenuItem Header="剪贴项排序" Tag="clipsort">
+                                <MenuItem Header="置顶" Tag="sticky" Click="ClipMenu_Click"/>
+                                <MenuItem Header="取消置顶" Tag="unsticky" Click="ClipMenu_Click"/>
+                                <Separator/>
+                                <MenuItem Header="在资源管理器中显示" Tag="reveal" Click="ClipMenu_Click"/>
+                              </MenuItem>
+
+                              <MenuItem Header="导入 / 导出" Tag="io">
+                                <MenuItem Header="导出所选为文本" Tag="exporttxt" Click="ClipMenu_Click"/>
+                                <MenuItem Header="导出所选为 JSON" Tag="exportjson" Click="ClipMenu_Click"/>
+                                <MenuItem Header="复制到剪贴板" Tag="copy" Click="ClipMenu_Click"/>
+                                <MenuItem Header="另存为新条目" Tag="saveas" Click="ClipMenu_Click"/>
+                              </MenuItem>
+                            </ContextMenu>
+                          </Border.ContextMenu>
+                          <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                          <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource B.Zebra}"/>
+                          </Trigger>
+                          <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource B.RowHover}"/>
+                          </Trigger>
+                          <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource B.Selected}"/>
+                          </Trigger>
+                        </ControlTemplate.Triggers>
+                      </ControlTemplate>
+                    </Setter.Value>
+                  </Setter>
+                </Style>
+              </ListBox.ItemContainerStyle>
+
+              <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:ClipRowVM}">
+                  <Grid Height="{Binding DataContext.RowHeight, RelativeSource={RelativeSource AncestorType=ListBox}}" Margin="10,0" Background="Transparent"
+                        MouseEnter="Row_MouseEnter" MouseLeave="Row_MouseLeave">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="Auto"/>
+                      <ColumnDefinition Width="Auto"/>
+                      <ColumnDefinition Width="*" MinWidth="100"/>
+                      <ColumnDefinition Width="Auto"/>
+                      <ColumnDefinition Width="Auto" MinWidth="28"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 隐私标记：左侧黄色竖条 -->
+                    <Border Grid.Column="0" Width="3" CornerRadius="1.5" Margin="0,6"
+                            Background="#FFC53D"
+                            Visibility="{Binding IsPrivate, Converter={StaticResource BoolToVis}}"/>
+
+                    <!-- 缩略图 / 图标 -->
+                    <Grid Grid.Column="1" Width="44" Height="44" Margin="6,0,12,0" VerticalAlignment="Center">
+                      <Border x:Name="iconBg" CornerRadius="5" Background="{Binding KindBrush}" Opacity="0.12"/>
+                      <controls:Icon x:Name="kindIcon" Kind="{Binding KindIcon}" Width="17" Height="17"
+                                     Stroke="{Binding KindBrush}" HorizontalAlignment="Center"
+                                     VerticalAlignment="Center"/>
+                      <Border x:Name="thumb" CornerRadius="5" Visibility="Collapsed" ClipToBounds="True">
+                        <Grid>
+                          <Border>
+                            <Border.Background>
+                              <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#E9E4F5" Offset="0"/>
+                                <GradientStop Color="#F5E4EE" Offset="1"/>
+                              </LinearGradientBrush>
+                            </Border.Background>
+                          </Border>
+                          <Image Source="{Binding Thumb}" Stretch="UniformToFill"/>
+                        </Grid>
+                      </Border>
+                    </Grid>
+
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                      <TextBlock x:Name="preview" Text="{Binding Preview}" FontSize="14"
+                                 Foreground="{DynamicResource B.Text}"
+                                 TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                      <TextBlock Text="{Binding MetaText}" FontSize="11" Margin="0,4,0,0"
+                                 Foreground="{DynamicResource B.Text3}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="3" Text="{Binding TimeText}" FontSize="11.5"
+                               Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"
+                               Margin="10,0,4,0"/>
+
+                    <Button Grid.Column="4" Width="28" Height="28" Background="Transparent"
+                            BorderThickness="0" VerticalAlignment="Center"
+                            ToolTip="展开预览"
+                            Command="{Binding DataContext.OpenPreviewCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                            CommandParameter="{Binding}">
+                      <Button.Style>
+                        <Style TargetType="Button">
+                          <Setter Property="Opacity" Value="0.42"/>
+                          <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                              <Setter Property="Opacity" Value="1"/>
+                            </Trigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Button.Style>
+                      <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                          <Border x:Name="b" CornerRadius="5" Background="Transparent">
+                            <controls:Icon Kind="Ellipsis" Width="15" Height="15"
+                                           Stroke="{DynamicResource B.Text3}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                          </Border>
+                          <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                              <Setter TargetName="b" Property="Background" Value="#14000000"/>
+                            </Trigger>
+                          </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                      </Button.Template>
+                    </Button>
+                  </Grid>
+
+                  <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsImage}" Value="True">
+                      <Setter TargetName="iconBg" Property="Visibility" Value="Collapsed"/>
+                      <Setter TargetName="kindIcon" Property="Visibility" Value="Collapsed"/>
+                      <Setter TargetName="thumb" Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                      <Setter TargetName="preview" Property="Foreground" Value="{DynamicResource B.Primary}"/>
+                    </DataTrigger>
+                  </DataTemplate.Triggers>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- 底栏 -->
+            <Border Grid.Row="3" BorderBrush="{DynamicResource B.Divider}" BorderThickness="0,1,0,0"
+                Visibility="{Binding IsClipPageVisible, Converter={StaticResource BoolToVis}}">
+              <Grid Margin="18,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                  <TextBlock Text="↑↓ 选择   Enter 粘贴   Ctrl+Enter 纯文本   Tab 分组"
+                             FontSize="11" Foreground="{DynamicResource B.Text3}"/>
+                </StackPanel>
+                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center"
+                           Text="{Binding StatusText}" FontSize="11"
+                           Foreground="{DynamicResource B.Text3}"/>
+              </Grid>
+            </Border>
+          </Grid>
+
+          <!-- 可拖动分隔条 -->
+          <GridSplitter Grid.Column="2" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                        Background="Transparent" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"
+                        ShowsPreview="False" Cursor="SizeWE"
+                        Visibility="{Binding IsPreviewOpen, Converter={StaticResource BoolToVis}}">
+            <GridSplitter.Template>
+              <ControlTemplate TargetType="GridSplitter">
+                <Border Background="Transparent">
+                  <Border x:Name="line" Width="1" HorizontalAlignment="Center"
+                          Background="{DynamicResource B.Divider}"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="line" Property="Background" Value="{DynamicResource B.Primary}"/>
+                    <Setter TargetName="line" Property="Width" Value="2"/>
+                  </Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </GridSplitter.Template>
+          </GridSplitter>
+
+          <!-- 预览面板 -->
+          <Border Grid.Column="3" Background="{DynamicResource B.Bg}"
+                  BorderBrush="#D9D9D9" BorderThickness="3,0,0,0"
+                  Visibility="{Binding IsPreviewOpen, Converter={StaticResource BoolToVis}}">
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+
+              <Border Grid.Row="0" BorderBrush="{DynamicResource B.Divider}" BorderThickness="0,0,0,1"
+                      Padding="16,14,12,10">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                  </Grid.ColumnDefinitions>
+                  <StackPanel Grid.Column="0">
+                    <TextBlock Text="{Binding PreviewTitle}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource B.Text}" TextTrimming="CharacterEllipsis"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
+                      <Border CornerRadius="3" Padding="6,0" Height="17"
+                              Background="{Binding PreviewKindBrush}" Opacity="0.9">
+                        <TextBlock Text="{Binding PreviewKindLabel}" FontSize="10.5" Foreground="White"/>
+                      </Border>
+                      <TextBlock FontSize="11" Margin="8,0,0,0" Foreground="{DynamicResource B.Text3}"
+                                 VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                        <Run Text="{Binding PreviewSource, Mode=OneWay}"/>
+                        <Run Text="{Binding PreviewTime, Mode=OneWay}"/>
+                        <Run Text=" · ID "/>
+                        <Run Text="{Binding PreviewId, Mode=OneWay}"/>
+                      </TextBlock>
+                    </StackPanel>
+                  </StackPanel>
+                  <Button Grid.Column="1" Width="24" Height="24" Style="{StaticResource FlatButton}"
+                          VerticalAlignment="Top" Click="ClosePreview_Click" ToolTip="关闭预览">
+                    <controls:Icon Kind="Close" Width="13" Height="13" Stroke="{DynamicResource B.Text3}"/>
+                  </Button>
+                </Grid>
+              </Border>
+
+              <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0">
+                <StackPanel Margin="18,16">
+                  <Border Background="{DynamicResource B.CardBg}" CornerRadius="6" Padding="11,10"
+                          BorderBrush="{DynamicResource B.Divider}" BorderThickness="1">
+                    <Grid>
+                      <TextBox x:Name="PreviewTextBox" Text="{Binding PreviewText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                               FontSize="11.5" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"
+                               FontFamily="{StaticResource Font.Mono}"
+                               Foreground="{DynamicResource B.Text2}"
+                               Background="Transparent" BorderThickness="0"
+                               Padding="0" VerticalScrollBarVisibility="Auto" MinHeight="180"
+                               IsReadOnly="False" SpellCheck.IsEnabled="False">
+                        <TextBox.Style>
+                          <Style TargetType="TextBox">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding PreviewIsImage}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                              </DataTrigger>
+                              <DataTrigger Binding="{Binding PreviewIsRich}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                              </DataTrigger>
+
+                            </Style.Triggers>
+                          </Style>
+                        </TextBox.Style>
+                      </TextBox>
+
+                      <html:HtmlPanel x:Name="RichPreview" MinHeight="180"
+                                      Background="Transparent"
+                                      Visibility="{Binding PreviewIsRich, Converter={StaticResource BoolToVis}}"/>
+
+
+                      <Border CornerRadius="4" ClipToBounds="True">
+                        <Border.Style>
+                          <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding PreviewIsImage}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </Border.Style>
+                        <Image Source="{Binding PreviewImage}" Stretch="Uniform" MaxHeight="420" Margin="0,4"
+                               Cursor="Hand" ToolTip="单击查看原图"
+                               MouseLeftButtonUp="PreviewImage_Click"/>
+                      </Border>
+                    </Grid>
+                  </Border>
+
+                  <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                      <TextBlock Text="{Binding Source={x:Static loc:L.Instance}, Path=[preview.formats]}"
+                                 FontSize="9.5" Foreground="{DynamicResource B.Text3}"/>
+                      <TextBlock Text="{Binding PreviewFormats}" FontSize="11"
+                                 Foreground="{DynamicResource B.Text2}" Margin="0,2,0,0"
+                                 TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1">
+                      <TextBlock Text="{Binding Source={x:Static loc:L.Instance}, Path=[preview.size]}"
+                                 FontSize="9.5" Foreground="{DynamicResource B.Text3}"/>
+                      <TextBlock Text="{Binding PreviewSize}" FontSize="11"
+                                 Foreground="{DynamicResource B.Text2}" Margin="0,2,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Text="{Binding Source={x:Static loc:L.Instance}, Path=[preview.pasteCount]}"
+                                 FontSize="9.5" Foreground="{DynamicResource B.Text3}"/>
+                      <TextBlock Text="{Binding PreviewPasteCount}" FontSize="11"
+                                 Foreground="{DynamicResource B.Text2}" Margin="0,2,0,0"/>
+                    </StackPanel>
+                  </Grid>
+
+                  <Button Margin="0,8,0,0" HorizontalAlignment="Left" Height="22" Padding="8,0"
+                          Style="{StaticResource FlatButton}" Command="{Binding TogglePreviewRawCommand}"
+                          Visibility="{Binding PreviewHasSecret, Converter={StaticResource BoolToVis}}"
+                          Content="切换原文 / 打码" FontSize="10.5"
+                          Foreground="{DynamicResource B.Warning}"/>
+
+                  <Button Margin="0,8,8,0" HorizontalAlignment="Left" Height="22" Padding="8,0"
+                          Style="{StaticResource FlatButton}" Click="TogglePrivate_Click"
+                          ToolTip="标记为隐私（不上传 AI）">
+                    <TextBlock FontSize="10.5">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                          <Setter Property="Text" Value="标记为隐私"/>
+                          <Setter Property="Foreground" Value="{DynamicResource B.Text3}"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding Selected.IsPrivate}" Value="True">
+                              <Setter Property="Text" Value="🔒 隐私条目（AI 不可见）"/>
+                              <Setter Property="Foreground" Value="#FFC53D"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                  </Button>
+
+                  <Button Margin="8,8,0,0" HorizontalAlignment="Left" Height="22" Padding="8,0"
+                          Style="{StaticResource FlatButton}" Click="TogglePrivateRaw_Click"
+                          Visibility="{Binding Selected.IsPrivate, Converter={StaticResource BoolToVis}}"
+                          ToolTip="临时显示隐私条目的原文（不会取消隐私标记）">
+                    <TextBlock FontSize="10.5">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                          <Setter Property="Text" Value="👁 查看原文"/>
+                          <Setter Property="Foreground" Value="#FFC53D"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding Selected.ShowRawText}" Value="True">
+                              <Setter Property="Text" Value="🙈 重新打码"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                  </Button>
+
+                  <Button Margin="8,8,0,0" HorizontalAlignment="Left" Height="22" Padding="8,0"
+                          Style="{StaticResource FlatButton}" Command="{Binding ToggleRichCommand}"
+                          Visibility="{Binding PreviewHasRichText, Converter={StaticResource BoolToVis}}"
+                          ToolTip="显示这条内容自带的 HTML 源码">
+                    <TextBlock FontSize="10.5" Foreground="{DynamicResource B.Primary}">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                          <Setter Property="Text" Value="看原格式"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding PreviewIsRich}" Value="True">
+                              <Setter Property="Text" Value="看纯文本"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                  </Button>
+
+                  <Grid Margin="0,10,0,4">
+                    <TextBlock Text="{Binding Source={x:Static loc:L.Instance}, Path=[preview.tags]}"
+                               FontSize="11" Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"/>
+                    <Button HorizontalAlignment="Right" Height="20" Padding="7,0"
+                            Style="{StaticResource FlatButton}" Click="AddTag_Click">
+                      <TextBlock Text="+ 添加标签" FontSize="10.5" Foreground="{DynamicResource B.Primary}"/>
+                    </Button>
+                  </Grid>
+
+                  <ItemsControl ItemsSource="{Binding PreviewTags}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel/>
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Border Background="{DynamicResource B.InputBg}" CornerRadius="10"
+                                Padding="8,1" Margin="0,0,6,6" Cursor="Hand"
+                                ToolTip="点击移除这个标签"
+                                MouseLeftButtonUp="TagChip_Click">
+                          <TextBlock Text="{Binding StringFormat=#{0}}" FontSize="10.5"
+                                     Foreground="{DynamicResource B.Text2}"/>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+
+                  <TextBlock Text="还没有标签，点右上「+ 添加标签」创建"
+                             FontSize="10.5" Foreground="{DynamicResource B.Text3}" Margin="0,2,0,0">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding PreviewTags.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Visible"/>
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+
+                  <Border Background="#12F9F0FF" BorderBrush="#33EFDBFF" BorderThickness="1"
+                          CornerRadius="4" Padding="9,7" Margin="0,8,0,0">
+                    <StackPanel>
+                      <Grid>
+                        <StackPanel Orientation="Horizontal">
+                          <controls:Icon Kind="Ai" Width="11" Height="11" Stroke="{DynamicResource B.Purple}" Margin="0,0,5,0"/>
+                          <TextBlock Text="{Binding Source={x:Static loc:L.Instance}, Path=[preview.aiSummary]}"
+                                     FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource B.Purple}"/>
+                        </StackPanel>
+                        <Button HorizontalAlignment="Right" Height="20" Padding="7,0"
+                                Style="{StaticResource FlatButton}"
+                                Command="{Binding SummarizeCommand}" Content="生成"/>
+                      </Grid>
+
+                      <TextBlock Text="{Binding AiSummary}" FontSize="11.5" TextWrapping="Wrap"
+                                 Foreground="{DynamicResource B.Text2}" Margin="0,4,0,0"/>
+
+                      <TextBlock FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"
+                                 Foreground="{DynamicResource B.Text3}"
+                                 Text="点「生成」让 AI 概括这条内容。只会发送这一条，凭据类会被拦截。">
+                        <TextBlock.Style>
+                          <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding AiSummary}" Value="">
+                                <Setter Property="Visibility" Value="Visible"/>
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </TextBlock.Style>
+                      </TextBlock>
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </ScrollViewer>
+
+              <Border Grid.Row="2" BorderBrush="{DynamicResource B.Divider}" BorderThickness="0,1,0,0"
+                      Padding="16,10">
+                <Grid>
+                  <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource PrimaryButton}" Padding="12,0"
+                            Command="{Binding PasteSelectedCommand}">
+                      <StackPanel Orientation="Horizontal">
+                        <controls:Icon Kind="ArrowRight" Width="12" Height="12" Stroke="White" Margin="0,0,5,0"/>
+                        <TextBlock Text="{Binding Source={x:Static loc:L.Instance}, Path=[preview.paste]}"
+                                   FontSize="12" Foreground="White"/>
+                      </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Margin="8,0,0,0" Height="30"
+                            Command="{Binding PastePlainSelectedCommand}">
+                      <TextBlock Text="{Binding Source={x:Static loc:L.Instance}, Path=[preview.plainText]}"
+                                 FontSize="12" Foreground="{DynamicResource B.Text2}"/>
+                    </Button>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource ChipButton}" Height="30" Margin="0,0,8,0"
+                            Command="{Binding SaveAsNewCommand}" ToolTip="放进剪贴板，让 Ditto 录成新条目">
+                      <TextBlock Text="另存为新" FontSize="12" Foreground="{DynamicResource B.Text2}"/>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Height="30" Margin="0,0,8,0"
+                            Command="{Binding SaveEditedCommand}" ToolTip="写回原条目（先备份数据库）">
+                      <TextBlock Text="保存" FontSize="12" Foreground="{DynamicResource B.Text2}"/>
+                    </Button>
+                    <Button Style="{StaticResource ChipButton}" Height="30" Click="MoveToGroup_Click">
+                      <TextBlock Text="{Binding Source={x:Static loc:L.Instance}, Path=[preview.moveToGroup]}"
+                                 FontSize="12" Foreground="{DynamicResource B.Text2}"/>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </Grid>
+          </Border>
+        </Grid>
+
+        <!-- 内嵌页：设置 / 统计 -->
+        <views:SettingsPage Grid.Row="1" x:Name="SettingsPageView"
+                            Visibility="{Binding IsSettingsVisible, Converter={StaticResource BoolToVis}}"/>
+        <views:StatsPage Grid.Row="1" x:Name="StatsPageView"
+                         Visibility="{Binding IsStatsVisible, Converter={StaticResource BoolToVis}}"/>
+      </Grid>
+    </Border>
+  
+  <!-- 悬停预览卡片 -->
+  <Popup x:Name="HoverPop" Placement="Absolute" AllowsTransparency="True" StaysOpen="True"
+         PopupAnimation="Fade" HorizontalOffset="18" VerticalOffset="10">
+    <views:HoverPreview x:Name="HoverCard" IsHitTestVisible="False"/>
+  </Popup>
+  </Grid>
+</Window>

@@ -1,0 +1,219 @@
+{
+  "updated": "2026-11-15",
+  "batches": [
+    {
+      "id": "B0",
+      "name": "工程骨架",
+      "items": [
+        {
+          "name": "5 个项目 + 依赖方向",
+          "done": true
+        },
+        {
+          "name": "依赖注入 + 主题 token",
+          "done": true
+        },
+        {
+          "name": "Lucide 图标 55 个",
+          "done": true
+        },
+        {
+          "name": "中英双语资源",
+          "done": true
+        },
+        {
+          "name": "主界面三态（浅/深/展开）",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "B1",
+      "name": "外形补全",
+      "items": [
+        {
+          "name": "快速面板 + 全局热键",
+          "done": true
+        },
+        {
+          "name": "分组浮层（树形）",
+          "done": true
+        },
+        {
+          "name": "斜杠命令面板",
+          "done": true
+        },
+        {
+          "name": "设置页 7 个分页",
+          "done": true
+        },
+        {
+          "name": "统计页",
+          "done": true
+        },
+        {
+          "name": "进度看板",
+          "done": true
+        },
+        {
+          "name": "托盘图标与右键菜单",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "B2",
+      "name": "接通读",
+      "items": [
+        {
+          "name": "DittoDbReader 只读查询",
+          "done": true
+        },
+        {
+          "name": "Ditto 路径探测",
+          "done": true
+        },
+        {
+          "name": "LIKE 全文搜索",
+          "done": true
+        },
+        {
+          "name": "CF_DIB 缩略图 + 内存 LRU",
+          "done": true
+        },
+        {
+          "name": "类型自动判定",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "B3",
+      "name": "接通写",
+      "items": [
+        {
+          "name": "备份服务",
+          "done": true
+        },
+        {
+          "name": "受控写入 4 字段",
+          "done": true
+        },
+        {
+          "name": "分组增删改（含嵌套）",
+          "done": true
+        },
+        {
+          "name": "WM_REFRESH_VIEW 同步",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "B4",
+      "name": "粘贴与设置",
+      "items": [
+        {
+          "name": "/paste 粘贴链路",
+          "done": true
+        },
+        {
+          "name": "Ditto.Settings 读写",
+          "done": true
+        },
+        {
+          "name": "P0 的 18 项设置接通",
+          "done": true
+        },
+        {
+          "name": "热键冲突检测与引导",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "B5",
+      "name": "标签与来源",
+      "items": [
+        {
+          "name": "sidecar 库（UTF-16LE）",
+          "done": true
+        },
+        {
+          "name": "标签增删查",
+          "done": true
+        },
+        {
+          "name": "来源应用记录",
+          "done": true
+        },
+        {
+          "name": "孤儿对账",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "B6",
+      "name": "AI",
+      "items": [
+        {
+          "name": "DeepSeek 客户端",
+          "done": true
+        },
+        {
+          "name": "Key 存凭据管理器",
+          "done": true
+        },
+        {
+          "name": "敏感检测与脱敏",
+          "done": true
+        },
+        {
+          "name": "AI 摘要（预览面板）",
+          "done": true
+        },
+        {
+          "name": "AI 语义搜索（tag 入口）",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "B7",
+      "name": "导出与统计",
+      "items": [
+        {
+          "name": "换机打包",
+          "done": true
+        },
+        {
+          "name": "导出选中项",
+          "done": true
+        },
+        {
+          "name": "统计页真实数据",
+          "done": true
+        }
+      ]
+    },
+    {
+      "id": "B8",
+      "name": "发布",
+      "items": [
+        {
+          "name": "单文件发布 + 体积优化",
+          "done": true
+        },
+        {
+          "name": "许可证与第三方声明",
+          "done": true
+        },
+        {
+          "name": "干净机器验证",
+          "done": false
+        }
+      ]
+    }
+  ]
+}

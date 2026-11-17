@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>方案 C · 三栏（分组 / 列表 / 预览）</title>
+<style>
+:root{
+  --bg:#141414;--panel:#1a1a1f;--panel-2:#202027;--card:#25252c;--card-h:#2c2c35;
+  --border:#30303a;--divider:#26262e;
+  --text:#ebeef0;--text-2:#a5a5b2;--text-3:#6c6c79;
+  --primary:#1677ff;--primary-dim:rgba(22,119,255,.13);
+  --green:#52c41a;--orange:#faad14;--red:#ff4d4f;--magenta:#eb2f96;--cyan:#13c2c2;--purple:#9254de;
+  --r:6px;--r-lg:10px;
+  --shadow:0 6px 16px -8px rgba(0,0,0,.65),0 9px 28px 0 rgba(0,0,0,.5),0 12px 48px 16px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;
+  background:radial-gradient(1200px 700px at 30% 20%,#182430 0%,#0c0f14 55%,#06070a 100%);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px;color:var(--text);
+  -webkit-font-smoothing:antialiased}
+.mono{font-family:"Cascadia Code","Consolas",monospace}
+.win{width:1060px;height:640px;background:var(--panel);border-radius:var(--r-lg);border:1px solid var(--border);
+  box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+
+/* 顶栏 */
+.top{height:52px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--divider)}
+.search{flex:1;height:34px;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--r);
+  display:flex;align-items:center;gap:8px;padding:0 10px}
+.search svg{opacity:.45}
+.search .ph{font-size:12.5px;color:var(--text-3);flex:1}
+.seg{display:flex;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--r);padding:2px;gap:2px}
+.seg div{width:30px;height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--text-3)}
+.seg div.on{background:rgba(255,255,255,.09);color:var(--text)}
+.ib{width:34px;height:34px;border-radius:var(--r);background:var(--panel-2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;color:var(--text-2);flex:none}
+.ib.on{background:var(--primary-dim);border-color:rgba(22,119,255,.4);color:var(--primary)}
+
+/* 三栏 */
+.body{flex:1;display:flex;min-height:0}
+.col1{width:166px;flex:none;border-right:1px solid var(--divider);padding:8px 6px;overflow:hidden}
+.cap{font-size:9.5px;letter-spacing:.09em;color:var(--text-3);padding:6px 8px 4px;text-transform:uppercase}
+.g{display:flex;align-items:center;gap:8px;height:29px;padding:0 8px;border-radius:var(--r);font-size:12px;color:var(--text-2)}
+.g .dot{width:6px;height:6px;border-radius:2px;flex:none;background:var(--text-3)}
+.g .n{margin-left:auto;font-size:10.5px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.g.sel{background:var(--primary-dim);color:var(--primary);font-weight:600}
+.g.sel .n{color:rgba(22,119,255,.8)}
+.g.sel .dot{background:var(--primary)}
+.hr{height:1px;background:var(--divider);margin:6px 8px}
+
+.col2{width:352px;flex:none;border-right:1px solid var(--divider);display:flex;flex-direction:column;min-height:0}
+.c2head{height:34px;flex:none;display:flex;align-items:center;padding:0 12px;gap:6px;border-bottom:1px solid var(--divider);
+  font-size:10.5px;color:var(--text-3)}
+.li{display:flex;gap:9px;padding:9px 11px;border-bottom:1px solid rgba(255,255,255,.035);position:relative}
+.li::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:2px;border-radius:2px;background:var(--text-3);opacity:.5}
+.li.sel{background:linear-gradient(90deg,rgba(22,119,255,.15),rgba(22,119,255,.04))}
+.li.sel::before{background:var(--primary);opacity:1;width:3px}
+.li .thumb{width:34px;height:34px;border-radius:4px;flex:none;background:linear-gradient(135deg,#334155,#7c3aed 55%,#ec4899)}
+.li .b{flex:1;min-width:0}
+.li .t{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.li .m{font-size:10px;color:var(--text-3);margin-top:2px;display:flex;gap:6px;align-items:center}
+
+.col3{flex:1;display:flex;flex-direction:column;min-width:0;background:linear-gradient(180deg,rgba(255,255,255,.015),transparent)}
+.pv-head{padding:16px 18px 12px;border-bottom:1px solid var(--divider);flex:none}
+.pv-title{font-size:14px;font-weight:600;line-height:1.5;word-break:break-all}
+.pv-meta{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:10.5px;color:var(--text-3);flex-wrap:wrap}
+.tag{font-size:9.5px;padding:1px 6px;height:16px;line-height:14px;border-radius:3px;background:rgba(255,255,255,.07);color:var(--text-2)}
+.tag.p{background:rgba(22,119,255,.16);color:#69b1ff}
+.tag.r{background:rgba(255,77,79,.16);color:#ff7875}
+.pv-body{flex:1;padding:16px 18px;overflow:hidden;font-size:13px;line-height:1.85;color:var(--text-2)}
+.pv-body .hl{background:rgba(22,119,255,.22);color:#cfe3ff;border-radius:2px;padding:0 2px}
+.pv-body pre{font-family:"Cascadia Code","Consolas",monospace;font-size:12px;line-height:1.8;color:#c9d1d9;
+  background:#16161c;border:1px solid var(--border);border-radius:6px;padding:12px 14px;white-space:pre-wrap}
+.pv-actions{height:44px;flex:none;border-top:1px solid var(--divider);display:flex;align-items:center;gap:8px;padding:0 16px}
+.btn{height:28px;padding:0 12px;border-radius:var(--r);font-size:11.5px;display:flex;align-items:center;gap:6px;
+  background:var(--panel-2);border:1px solid var(--border);color:var(--text-2)}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+.sp{flex:1}
+
+.col1,.col2{overflow:hidden}
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="top">
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span class="ph">搜索 6,135 条历史…</span>
+    </div>
+    <div class="seg">
+      <div class="on" title="列表"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></div>
+      <div title="网格"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg></div>
+      <div title="预览"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg></div>
+    </div>
+    <div class="ib" title="排序：最近复制">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h12M3 12h9M3 18h6"/><path d="M18 9l3 3-3 3"/></svg>
+    </div>
+    <div class="ib on" title="AI 检索"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></div>
+    <div class="ib" title="设置"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></div>
+  </div>
+
+  <div class="body">
+    <div class="col1">
+      <div class="cap">视图</div>
+      <div class="g sel"><span class="dot"></span>全部历史<span class="n">6135</span></div>
+      <div class="g"><span class="dot" style="background:var(--green)"></span>今天<span class="n">48</span></div>
+      <div class="g"><span class="dot" style="background:var(--magenta)"></span>图片<span class="n">113</span></div>
+      <div class="g"><span class="dot" style="background:var(--cyan)"></span>链接<span class="n">2834</span></div>
+      <div class="g"><span class="dot" style="background:var(--purple)"></span>代码<span class="n">326</span></div>
+      <div class="g"><span class="dot" style="background:var(--orange)"></span>未归类<span class="n">412</span></div>
+      <div class="hr"></div>
+      <div class="cap">分组 · 35</div>
+      <div class="g"><span class="dot" style="background:#eb2f96"></span>M4A1<span class="n">18</span></div>
+      <div class="g"><span class="dot" style="background:#faad14"></span>PKM<span class="n">11</span></div>
+      <div class="g"><span class="dot" style="background:#13c2c2"></span>KC17<span class="n">30</span></div>
+      <div class="g"><span class="dot" style="background:#9254de"></span>ASVAL<span class="n">13</span></div>
+      <div class="g"><span class="dot" style="background:#ff7a45"></span>M7<span class="n">18</span></div>
+      <div class="g"><span class="dot" style="background:#36cfc9"></span>K416<span class="n">21</span></div>
+      <div class="g"><span class="dot" style="background:#597ef7"></span>M14<span class="n">10</span></div>
+    </div>
+
+    <div class="col2">
+      <div class="c2head"><span>6,135 条</span><span class="sp" style="flex:1"></span><span>最近复制 ▾</span></div>
+
+      <div class="li sel">
+        <div class="b">
+          <div class="t mono">https://github.com/mg-chao/snow-shot</div>
+          <div class="m"><span class="tag" style="background:rgba(19,194,194,.16);color:#5cdbd3">链接</span><span>Chrome · 3 分钟前</span></div>
+        </div>
+      </div>
+
+      <div class="li">
+        <div class="b">
+          <div class="t">不做云同步、不做多机、不做手机端、不做密码管理。</div>
+          <div class="m"><span class="tag">文本</span><span>DeepSeek · 8 分钟前</span></div>
+        </div>
+      </div>
+
+      <div class="li">
+        <div class="b">
+          <div class="t mono">gh auth login --with-token &lt; dsh-token.txt</div>
+          <div class="m"><span class="tag" style="background:rgba(146,84,222,.18);color:#b37feb">命令</span><span>PowerShell · 昨天</span></div>
+        </div>
+      </div>
+
+      <div class="li">
+        <div class="b">
+          <div class="t mono">github_pat_11BIJ••••••••••••</div>
+          <div class="m"><span class="tag r">敏感·脱敏</span><span>PowerShell · 昨天</span></div>
+        </div>
+      </div>
+
+      <div class="li">
+        <div class="thumb"></div>
+        <div class="b">
+          <div class="t">截图 2026-11-15 052411.png</div>
+          <div class="m"><span class="tag" style="background:rgba(235,47,150,.16);color:#ff85c0">图片</span><span>1920×1080 · 昨天</span></div>
+        </div>
+      </div>
+
+      <div class="li">
+        <div class="b">
+          <div class="t mono">D:\File\GitHub\令牌</div>
+          <div class="m"><span class="tag" style="background:rgba(250,173,20,.16);color:#ffc53d">文件夹</span><span>资源管理器 · 昨天</span></div>
+        </div>
+      </div>
+
+      <div class="li">
+        <div class="b">
+          <div class="t">密钥怎么交给我（按安全度排序）方案 A（推荐）…</div>
+          <div class="m"><span class="tag">长文本</span><span>DeepSeek · 昨天</span></div>
+        </div>
+      </div>
+
+      <div class="li">
+        <div class="b">
+          <div class="t mono">conn = sqlite3.connect("file:Ditto.db?mode=ro")</div>
+          <div class="m"><span class="tag" style="background:rgba(146,84,222,.18);color:#b37feb">Python</span><span>VS Code · 11-14</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col3">
+      <div class="pv-head">
+        <div class="pv-title">https://github.com/mg-chao/snow-shot</div>
+        <div class="pv-meta">
+          <span class="tag p">链接</span>
+          <span>来源 Chrome</span><span>·</span><span>3 分钟前</span><span>·</span>
+          <span>2 种格式</span><span>·</span><span>ID 9793</span>
+        </div>
+      </div>
+      <div class="pv-body">
+        <pre>https://github.com/mg-chao/snow-shot</pre>
+        <div style="margin-top:14px;color:var(--text-3);font-size:11.5px">
+          匹配位置：第 1 行 · <span class="hl">snow-shot</span>
+        </div>
+        <div style="margin-top:18px;font-size:12px;color:var(--text-2)">
+          <span style="color:var(--text-3)">标签</span>&nbsp; <span class="tag">#UI参考</span> <span class="tag">#截图工具</span> <span class="tag">#Ant Design</span>
+        </div>
+        <div style="margin-top:14px;font-size:12px;color:var(--text-2)">
+          <span style="color:var(--text-3)">AI 摘要</span>&nbsp; snow-shot 是一款开源截图与录屏工具，界面基于 Ant Design 设计体系，
+          可作为本项目 UI 的视觉参考。
+        </div>
+        <div style="margin-top:22px;border-top:1px solid var(--divider);padding-top:14px;font-size:11.5px">
+          <div style="display:flex;gap:18px;margin-bottom:9px"><span style="color:var(--text-3);width:52px">格式</span><span style="color:var(--text-2)">CF_UNICODETEXT · HTML Format</span></div>
+          <div style="display:flex;gap:18px;margin-bottom:9px"><span style="color:var(--text-3);width:52px">大小</span><span style="color:var(--text-2)">128 字节</span></div>
+          <div style="display:flex;gap:18px;margin-bottom:9px"><span style="color:var(--text-3);width:52px">分组</span><span style="color:var(--text-2)">未归类</span></div>
+          <div style="display:flex;gap:18px"><span style="color:var(--text-3);width:52px">粘贴次数</span><span style="color:var(--text-2)">3 次 · 最近 3 分钟前</span></div>
+        </div>
+      </div>
+      <div class="pv-actions">
+        <div class="btn pri">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          粘贴
+        </div>
+        <div class="btn">纯文本</div>
+        <div class="btn">复制</div>
+        <div class="sp"></div>
+        <div class="btn">编辑</div>
+        <div class="btn">移到分组</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

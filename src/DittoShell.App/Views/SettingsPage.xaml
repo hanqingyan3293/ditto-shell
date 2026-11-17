@@ -1,0 +1,588 @@
+<UserControl x:Class="DittoShell.App.Views.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:DittoShell.App.Controls"
+             xmlns:loc="clr-namespace:DittoShell.App.Markup"
+             xmlns:vm="clr-namespace:DittoShell.App.ViewModels">
+
+  <Grid Background="{DynamicResource B.Bg}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="44"/>
+      <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
+
+    <!-- 顶部：返回 + 标题 -->
+    <Grid Grid.Row="0">
+      <StackPanel Orientation="Horizontal" Margin="12,0" VerticalAlignment="Center">
+        <Button Style="{StaticResource FlatButton}" Height="30" Padding="8,0" Click="Back_Click"
+                ToolTip="返回剪贴板">
+          <StackPanel Orientation="Horizontal">
+            <controls:Icon Kind="ChevronLeft" Width="14" Height="14" Stroke="{DynamicResource B.Text2}"/>
+            <TextBlock Text="返回" FontSize="12.5" Margin="3,0,0,0" Foreground="{DynamicResource B.Text2}"/>
+          </StackPanel>
+        </Button>
+        <TextBlock Text="{loc:Str settings.title}" FontSize="13.5" FontWeight="SemiBold"
+                   Margin="10,0,0,0" VerticalAlignment="Center"/>
+      </StackPanel>
+    </Grid>
+
+    <!-- 主体：左导航 + 右内容 -->
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="200"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0" Background="{DynamicResource B.BgSide}"
+              BorderBrush="{DynamicResource B.Divider}" BorderThickness="0,0,1,0">
+        <ListBox x:Name="NavList" Background="Transparent" BorderThickness="0"
+                 Margin="8,10,8,8" Padding="0" SelectionChanged="Nav_SelectionChanged">
+          <ListBox.ItemContainerStyle>
+            <Style TargetType="ListBoxItem">
+              <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+              <Setter Property="Padding" Value="0"/>
+              <Setter Property="Template">
+                <Setter.Value>
+                  <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="bd" Height="38" CornerRadius="6" Background="Transparent" Margin="0,1">
+                      <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                      <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="bd" Property="Background" Value="{DynamicResource B.Hover}"/>
+                      </Trigger>
+                      <Trigger Property="IsSelected" Value="True">
+                        <Setter TargetName="bd" Property="Background" Value="{DynamicResource B.Selected}"/>
+                      </Trigger>
+                    </ControlTemplate.Triggers>
+                  </ControlTemplate>
+                </Setter.Value>
+              </Setter>
+            </Style>
+          </ListBox.ItemContainerStyle>
+
+          <ListBoxItem Tag="general">
+            <StackPanel Orientation="Horizontal" Margin="10,0">
+              <controls:Icon Kind="Settings" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
+              <TextBlock Text="{loc:Str settings.tab.general}" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem Tag="hotkeys">
+            <StackPanel Orientation="Horizontal" Margin="10,0">
+              <controls:Icon Kind="Keyboard" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
+              <TextBlock Text="{loc:Str settings.tab.hotkeys}" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem Tag="appearance">
+            <StackPanel Orientation="Horizontal" Margin="10,0">
+              <controls:Icon Kind="Palette" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
+              <TextBlock Text="{loc:Str settings.tab.appearance}" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem Tag="ai">
+            <StackPanel Orientation="Horizontal" Margin="10,0">
+              <controls:Icon Kind="Ai" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
+              <TextBlock Text="{loc:Str settings.tab.ai}" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem Tag="ditto">
+            <StackPanel Orientation="Horizontal" Margin="10,0">
+              <controls:Icon Kind="Database" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
+              <TextBlock Text="Ditto 设置" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem Tag="backup">
+            <StackPanel Orientation="Horizontal" Margin="10,0">
+              <controls:Icon Kind="Database" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
+              <TextBlock Text="备份" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem Tag="sidebar">
+            <StackPanel Orientation="Horizontal" Margin="10,0">
+              <controls:Icon Kind="Layers" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
+              <TextBlock Text="侧栏" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem Tag="data">
+            <StackPanel Orientation="Horizontal" Margin="10,0">
+              <controls:Icon Kind="Clipboard" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
+              <TextBlock Text="{loc:Str settings.tab.data}" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem Tag="progress">
+            <StackPanel Orientation="Horizontal" Margin="10,0">
+              <controls:Icon Kind="Chart" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
+              <TextBlock Text="{loc:Str settings.tab.progress}" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem Tag="about">
+            <StackPanel Orientation="Horizontal" Margin="10,0">
+              <controls:Icon Kind="Info" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
+              <TextBlock Text="{loc:Str settings.tab.about}" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </ListBoxItem>
+        </ListBox>
+      </Border>
+
+      <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Padding="0">
+
+        <Grid x:Name="Pages" Margin="28,22">
+          <!-- ═══ 常规 ═══ -->
+          <StackPanel x:Name="PageGeneral">
+            <TextBlock Text="{loc:Str settings.tab.general}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,18"/>
+
+            <Grid Margin="0,0,0,18">
+              <StackPanel>
+                <TextBlock Text="{loc:Str settings.general.language}" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="{loc:Str settings.general.languageDesc}" FontSize="11.5"
+                           Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+              </StackPanel>
+              <ComboBox Style="{StaticResource AntComboBox}" HorizontalAlignment="Right" Width="150">
+                <ComboBoxItem IsSelected="True">简体中文</ComboBoxItem>
+                <ComboBoxItem>English</ComboBoxItem>
+              </ComboBox>
+            </Grid>
+
+            <Grid Margin="0,0,0,18">
+              <StackPanel>
+                <TextBlock Text="{loc:Str settings.general.theme}" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="{loc:Str settings.general.themeDesc}" FontSize="11.5"
+                           Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+              </StackPanel>
+              <ComboBox Style="{StaticResource AntComboBox}" HorizontalAlignment="Right" Width="150"
+                        x:Name="ThemeCombo" SelectionChanged="Theme_SelectionChanged">
+                <ComboBoxItem Content="浅色" IsSelected="True"/>
+                <ComboBoxItem Content="深色"/>
+              </ComboBox>
+            </Grid>
+
+            <Grid Margin="0,0,0,18">
+              <StackPanel>
+                <TextBlock Text="{loc:Str settings.general.startup}" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="{loc:Str settings.general.startupDesc}" FontSize="11.5"
+                           Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+              </StackPanel>
+              <ToggleButton Style="{StaticResource Switch}" HorizontalAlignment="Right"/>
+            </Grid>
+
+            <Grid>
+              <StackPanel>
+                <TextBlock Text="{loc:Str settings.general.quickPanelHotkey}" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="{loc:Str settings.general.quickPanelHotkeyDesc}" FontSize="11.5"
+                           Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+              </StackPanel>
+              <Border HorizontalAlignment="Right" Background="{DynamicResource B.InputBg}" CornerRadius="6"
+                      Padding="12,6" VerticalAlignment="Center">
+                <TextBlock Text="Ctrl + `" FontFamily="{StaticResource Font.Mono}" FontSize="12"/>
+              </Border>
+            </Grid>
+          </StackPanel>
+
+          <!-- ═══ 快捷键 ═══ -->
+          <StackPanel x:Name="PageHotkeys" Visibility="Collapsed">
+            <TextBlock Text="{loc:Str settings.tab.hotkeys}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <TextBlock Text="点一下输入框，按下组合键立即生效；按 Delete 可取消该快捷键。"
+                       FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,0,0,18"/>
+
+            <Grid Margin="0,0,0,16">
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="呼出快速面板" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="全局快捷键，任何程序里都能用" FontSize="11" Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+              </StackPanel>
+              <TextBox x:Name="HotkeyQuickBox" Width="190" HorizontalAlignment="Right"
+                       Style="{StaticResource AntTextBox}" FontFamily="{StaticResource Font.Mono}"
+                       IsReadOnly="True" Cursor="Hand"
+                       GotKeyboardFocus="HotkeyBox_GotFocus" LostKeyboardFocus="HotkeyBox_LostFocus"
+                       PreviewKeyDown="HotkeyBox_PreviewKeyDown"/>
+            </Grid>
+
+            <Grid Margin="0,0,0,16">
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="打开主界面" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="建议加一个不容易冲突的组合" FontSize="11" Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+              </StackPanel>
+              <TextBox x:Name="HotkeyMainBox" Width="190" HorizontalAlignment="Right"
+                       Style="{StaticResource AntTextBox}" FontFamily="{StaticResource Font.Mono}"
+                       IsReadOnly="True" Cursor="Hand"
+                       GotKeyboardFocus="HotkeyBox_GotFocus" LostKeyboardFocus="HotkeyBox_LostFocus"
+                       PreviewKeyDown="HotkeyBox_PreviewKeyDown"/>
+            </Grid>
+
+            <TextBlock x:Name="HotkeyStatus" FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,0,0,18"/>
+
+            <TextBlock Text="面板内快捷键（固定，不可改）" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+            <Border Background="{DynamicResource B.CardBg}" CornerRadius="6" Padding="16"
+                    BorderBrush="{DynamicResource B.Divider}" BorderThickness="1">
+              <StackPanel>
+                <Grid Margin="0,0,0,10"><TextBlock Text="切换分组栏" FontSize="12.5"/><TextBlock Text="Tab" HorizontalAlignment="Right" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{DynamicResource B.Text2}"/></Grid>
+                <Grid Margin="0,0,0,10"><TextBlock Text="粘贴" FontSize="12.5"/><TextBlock Text="Enter" HorizontalAlignment="Right" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{DynamicResource B.Text2}"/></Grid>
+                <Grid Margin="0,0,0,10"><TextBlock Text="纯文本粘贴" FontSize="12.5"/><TextBlock Text="Ctrl + Enter" HorizontalAlignment="Right" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{DynamicResource B.Text2}"/></Grid>
+                <Grid Margin="0,0,0,10"><TextBlock Text="数字键直粘" FontSize="12.5"/><TextBlock Text="1 – 9" HorizontalAlignment="Right" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{DynamicResource B.Text2}"/></Grid>
+                <Grid><TextBlock Text="关闭面板" FontSize="12.5"/><TextBlock Text="Esc" HorizontalAlignment="Right" FontFamily="{StaticResource Font.Mono}" FontSize="12" Foreground="{DynamicResource B.Text2}"/></Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- ═══ 外观 ═══ -->
+          <StackPanel x:Name="PageAppearance" Visibility="Collapsed">
+            <TextBlock Text="{loc:Str settings.tab.appearance}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,18"/>
+            <Grid Margin="0,0,0,18">
+              <StackPanel>
+                <TextBlock Text="列表密度" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="每行高度，影响一屏能看多少条" FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock x:Name="DensityValue" Text="70" FontSize="13" FontWeight="SemiBold"
+                           FontFamily="{StaticResource Font.Mono}" VerticalAlignment="Center"
+                           Foreground="{DynamicResource B.Primary}" Margin="0,0,12,0" MinWidth="24"
+                           TextAlignment="Right"/>
+                <Slider x:Name="DensitySlider" Width="160" Minimum="40" Maximum="96" Value="70"
+                        IsSnapToTickEnabled="True" TickFrequency="2"
+                        ValueChanged="Density_ValueChanged"/>
+              </StackPanel>
+            </Grid>
+            <Grid Margin="0,0,0,18">
+              <StackPanel>
+                <TextBlock Text="列表里打码敏感内容" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="凭据类内容只显示前后几位" FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+              </StackPanel>
+              <ToggleButton Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="True"/>
+            </Grid>
+            <Grid>
+              <StackPanel>
+                <TextBlock Text="代码使用等宽字体" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="Cascadia Code / Consolas" FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+              </StackPanel>
+              <ToggleButton Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="True"/>
+            </Grid>
+          </StackPanel>
+
+          <!-- ═══ AI ═══ -->
+          <StackPanel x:Name="PageAi" Visibility="Collapsed">
+            <TextBlock Text="{loc:Str settings.tab.ai}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,18"/>
+
+            <Grid Margin="0,0,0,18">
+              <StackPanel>
+                <TextBlock Text="{loc:Str settings.ai.enabled}" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="{loc:Str settings.ai.enabledDesc}" FontSize="11.5"
+                           Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+              </StackPanel>
+              <ToggleButton x:Name="AiEnabledToggle" Style="{StaticResource Switch}"
+                            HorizontalAlignment="Right"
+                            Checked="AiEnabled_Changed" Unchecked="AiEnabled_Changed"/>
+            </Grid>
+
+            <TextBlock Text="{loc:Str settings.ai.baseUrl}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <TextBox x:Name="AiBaseUrlBox" Style="{StaticResource AntTextBox}" Margin="0,0,0,16"
+                     LostFocus="AiConfig_Changed"/>
+
+            <TextBlock Text="{loc:Str settings.ai.model}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <Grid Margin="0,0,0,16">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <ComboBox x:Name="AiModelCombo" Grid.Column="0" Style="{StaticResource AntComboBox}"
+                        FontFamily="{StaticResource Font.Mono}"
+                        SelectionChanged="AiModel_SelectionChanged"/>
+              <Button Grid.Column="1" Margin="8,0,0,0" Height="32" Padding="10,0"
+                      Style="{StaticResource ChipButton}" Click="FetchModels_Click"
+                      Content="获取模型列表"/>
+            </Grid>
+
+            <TextBlock Text="上下文预算" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <ComboBox x:Name="AiBudgetCombo" Style="{StaticResource AntComboBox}" Margin="0,0,0,4"
+                      SelectionChanged="AiBudget_SelectionChanged">
+              <ComboBoxItem Content="128K（省 token）" Tag="131072"/>
+              <ComboBoxItem Content="256K" Tag="262144"/>
+              <ComboBoxItem Content="512K（默认）" Tag="524288"/>
+              <ComboBoxItem Content="1M（最长上下文）" Tag="1048576"/>
+            </ComboBox>
+            <TextBlock Text="超出预算 90% 自动压缩早期对话，压缩后保留 16K 原文。"
+                       FontSize="10.5" Foreground="{DynamicResource B.Text3}" Margin="0,0,0,16"/>
+
+            <TextBlock Text="{loc:Str settings.ai.apiKey}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <TextBox x:Name="AiKeyBox" Style="{StaticResource AntTextBox}" Margin="0,0,0,6"/>
+            <TextBlock Text="{loc:Str settings.ai.apiKeyDesc}" FontSize="11"
+                       Foreground="{DynamicResource B.Text3}" Margin="0,0,0,14"/>
+
+            <StackPanel Orientation="Horizontal">
+              <Button Content="保存 Key" Style="{StaticResource ChipButton}" Click="AiSaveKey_Click"/>
+              <Button Content="{loc:Str settings.ai.test}" Style="{StaticResource ChipButton}"
+                      Margin="8,0,0,0" Click="AiTest_Click"/>
+              <TextBlock x:Name="AiStatusText" FontSize="11.5" Margin="12,0,0,0"
+                         VerticalAlignment="Center" Foreground="{DynamicResource B.Text3}"/>
+            </StackPanel>
+          </StackPanel>
+
+          <!-- ═══ 备份 ═══ -->
+          <StackPanel x:Name="PageBackup" Visibility="Collapsed">
+            <TextBlock Text="备份" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <TextBlock FontSize="11.5" Foreground="{DynamicResource B.Text3}"
+                       Margin="0,0,0,16" TextWrapping="Wrap"
+                       Text="每次修改数据库前自动备份。为避免占满磁盘，同一天只备份一次，最多保留 2 份。"/>
+
+            <Border Background="{DynamicResource B.CardBg}" CornerRadius="4"
+                    BorderBrush="{DynamicResource B.Divider}" BorderThickness="1" Padding="14,12"
+                    Margin="0,0,0,12">
+              <Grid>
+                <StackPanel>
+                  <TextBlock x:Name="BackupStatText" FontSize="12.5"
+                             Foreground="{DynamicResource B.Text}"/>
+                  <TextBlock x:Name="BackupDirText" FontSize="10.5"
+                             Foreground="{DynamicResource B.Text3}" Margin="0,4,0,0"
+                             TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                  <Button Content="只留最新 1 份" Style="{StaticResource ChipButton}" Height="28"
+                          Click="KeepLatestBackup_Click"/>
+                  <Button Content="刷新" Style="{StaticResource ChipButton}" Height="28"
+                          Margin="8,0,0,0" Click="RefreshBackup_Click"/>
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <Border BorderBrush="{DynamicResource B.Divider}" BorderThickness="1"
+                    CornerRadius="4" MaxHeight="420">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="BackupList" Margin="6">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Height="44" CornerRadius="4" Padding="10,0" Margin="0,1"
+                              Background="Transparent" Tag="{Binding}">
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                          </Grid.ColumnDefinitions>
+
+                          <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" FontSize="11.5"
+                                       Foreground="{DynamicResource B.Text}"
+                                       TextTrimming="CharacterEllipsis"
+                                       FontFamily="{StaticResource Font.Mono}"/>
+                            <TextBlock Text="{Binding MetaText}" FontSize="10"
+                                       Foreground="{DynamicResource B.Text3}" Margin="0,2,0,0"/>
+                          </StackPanel>
+
+                          <TextBlock Grid.Column="1" Text="{Binding SizeText}" FontSize="10.5"
+                                     Foreground="{DynamicResource B.Text3}"
+                                     VerticalAlignment="Center" Margin="0,0,10,0"/>
+
+                          <Button Grid.Column="2" Width="26" Height="26" Padding="0"
+                                  Style="{StaticResource FlatButton}" Background="Transparent"
+                                  Tag="{Binding}" Click="DeleteBackup_Click" ToolTip="删除这份备份">
+                            <controls:Icon Kind="Trash" Width="12" Height="12"
+                                           Stroke="{DynamicResource B.Text3}"/>
+                          </Button>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Border>
+
+            <TextBlock x:Name="BackupEmptyText" FontSize="11"
+                       Foreground="{DynamicResource B.Text3}" Margin="4,12,0,0"
+                       Text="还没有备份。第一次修改数据库时会自动创建。"
+                       Visibility="Collapsed"/>
+          </StackPanel>
+
+          <!-- ═══ 侧栏 ═══ -->
+          <StackPanel x:Name="PageSidebar" Visibility="Collapsed">
+            <TextBlock Text="侧栏" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <TextBlock Text="拖动左侧把手调整顺序，勾选框控制是否显示。"
+                       FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,0,0,16"/>
+
+            <Border Background="{DynamicResource B.CardBg}" CornerRadius="4"
+                    BorderBrush="{DynamicResource B.Divider}" BorderThickness="1">
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <ItemsControl Grid.Row="0" x:Name="SidebarItemList" Margin="6">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:SidebarItemVM}">
+                      <Border Height="36" CornerRadius="0" Background="Transparent" Margin="0,1"
+                              AllowDrop="True" Tag="{Binding}"
+                              BorderBrush="{DynamicResource B.Primary}" BorderThickness="0"
+                              Drop="SidebarRow_Drop" DragOver="SidebarRow_DragOver"
+                              DragLeave="SidebarRow_DragLeave">
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                          </Grid.ColumnDefinitions>
+
+                          <!-- 拖动把手 -->
+                          <Border Grid.Column="0" Width="22" Height="28" Background="Transparent"
+                                  Cursor="SizeAll" Tag="{Binding}"
+                                  PreviewMouseLeftButtonDown="SidebarHandle_Down"
+                                  PreviewMouseMove="SidebarHandle_Move">
+                            <TextBlock Text="⣿" FontSize="12" Foreground="{DynamicResource B.Text3}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                          </Border>
+
+                          <CheckBox Grid.Column="1" IsChecked="{Binding Visible, Mode=TwoWay}"
+                                    VerticalAlignment="Center" Margin="4,0,10,0"
+                                    IsEnabled="{Binding IsLocked, Converter={StaticResource InverseBool}}"/>
+
+                          <TextBlock Grid.Column="2" Text="{Binding Name}" FontSize="12.5"
+                                     Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
+
+                          <TextBlock Grid.Column="3" Text="{Binding LockHint}" FontSize="10.5"
+                                     Foreground="{DynamicResource B.Text3}" Margin="0,0,10,0"
+                                     VerticalAlignment="Center"/>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="14,0,14,12">
+                  <Button Content="恢复默认顺序" Style="{StaticResource ChipButton}" Height="28"
+                          Click="ResetSidebar_Click"/>
+                  <TextBlock x:Name="SidebarStatus" FontSize="11" Margin="12,0,0,0"
+                             VerticalAlignment="Center" Foreground="{DynamicResource B.Text3}"/>
+                </StackPanel>
+              </Grid>
+            </Border>
+          </StackPanel>
+
+          <!-- ═══ Ditto 设置 ═══ -->
+          <StackPanel x:Name="PageDitto" Visibility="Collapsed">
+            <Grid Margin="0,0,0,4">
+              <TextBlock Text="Ditto 原生设置" FontSize="16" FontWeight="SemiBold"/>
+              <TextBlock x:Name="DittoStatus" HorizontalAlignment="Right" FontSize="11.5"
+                         Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"/>
+            </Grid>
+            <TextBlock FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,0,0,16"
+                       TextWrapping="Wrap"
+                       Text="这些是 Ditto 自己的设置项，改动会立刻写回 Ditto.Settings。数值类改完按 Tab 或点别处生效。"/>
+
+            <ItemsControl x:Name="DittoList">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:SettingRowVM}">
+                  <Grid Height="54">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                      <TextBlock Text="{Binding Label}" FontSize="13" FontWeight="SemiBold"
+                                 Foreground="{DynamicResource B.Text}"/>
+                      <TextBlock Text="{Binding Desc}" FontSize="11" Margin="0,2,0,0"
+                                 Foreground="{DynamicResource B.Text3}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <TextBox Grid.Column="1" Width="170" Style="{StaticResource AntTextBox}"
+                             Text="{Binding TextValue, UpdateSourceTrigger=LostFocus}"
+                             Visibility="{Binding IsBool, Converter={StaticResource InverseBoolToVis}}"/>
+                    <CheckBox Grid.Column="1" IsChecked="{Binding BoolValue}" VerticalAlignment="Center"
+                              Visibility="{Binding IsBool, Converter={StaticResource BoolToVis}}"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+
+          <!-- ═══ 数据 ═══ -->
+          <StackPanel x:Name="PageData" Visibility="Collapsed">
+            <TextBlock Text="{loc:Str settings.tab.data}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,18"/>
+            <Border Background="{DynamicResource B.CardBg}" CornerRadius="6" Padding="16" Margin="0,0,0,16"
+                    BorderBrush="{DynamicResource B.Divider}" BorderThickness="1">
+              <StackPanel>
+                <Grid Margin="0,0,0,10"><TextBlock Text="Ditto 数据库" FontSize="12.5"/><TextBlock x:Name="DbPathText" Text="未接通" HorizontalAlignment="Right" FontSize="11.5" Foreground="{DynamicResource B.Text3}"/></Grid>
+                <Grid Margin="0,0,0,10"><TextBlock Text="总条目" FontSize="12.5"/><TextBlock Text="6,148" HorizontalAlignment="Right" FontSize="11.5" Foreground="{DynamicResource B.Text3}"/></Grid>
+                <Grid><TextBlock Text="库大小" FontSize="12.5"/><TextBlock Text="830 MB" HorizontalAlignment="Right" FontSize="11.5" Foreground="{DynamicResource B.Text3}"/></Grid>
+              </StackPanel>
+            </Border>
+            <Button Content="{loc:Str settings.data.backup}" Style="{StaticResource ChipButton}" HorizontalAlignment="Left" Margin="0,0,0,10" Click="DataBackup_Click"/>
+            <Button Content="{loc:Str settings.data.export}" Style="{StaticResource ChipButton}" HorizontalAlignment="Left" Margin="0,0,0,10" Click="DataExport_Click"/>
+            <Button Content="{loc:Str settings.data.cleanup}" Style="{StaticResource ChipButton}" HorizontalAlignment="Left" Click="DataCleanup_Click"/>
+            <TextBlock x:Name="DataStatusText" FontSize="11.5" Margin="0,12,0,0"
+                       Foreground="{DynamicResource B.Text3}" TextWrapping="Wrap"/>
+          </StackPanel>
+
+          <!-- ═══ 开发进度 ═══ -->
+          <StackPanel x:Name="PageProgress" Visibility="Collapsed">
+            <Grid Margin="0,0,0,4">
+              <TextBlock Text="{loc:Str progress.title}" FontSize="16" FontWeight="SemiBold"/>
+              <TextBlock x:Name="PercentText" HorizontalAlignment="Right" FontSize="13"
+                         Foreground="{DynamicResource B.Primary}" FontWeight="SemiBold"/>
+            </Grid>
+            <TextBlock x:Name="PercentSub" FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,0,0,18"/>
+            <ItemsControl x:Name="ProgressList"/>
+          </StackPanel>
+
+          <!-- ═══ 关于 ═══ -->
+          <StackPanel x:Name="PageAbout" Visibility="Collapsed">
+            <TextBlock Text="{loc:Str settings.tab.about}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,18"/>
+            <Border Background="{DynamicResource B.CardBg}" CornerRadius="6" Padding="18"
+                    BorderBrush="{DynamicResource B.Divider}" BorderThickness="1">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                  <Border Width="44" Height="44" CornerRadius="10" Margin="0,0,14,0">
+                    <Border.Background>
+                      <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#9254DE" Offset="0"/>
+                        <GradientStop Color="#1677FF" Offset="1"/>
+                      </LinearGradientBrush>
+                    </Border.Background>
+                    <TextBlock Text="D" Foreground="White" FontSize="20" FontWeight="Bold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                  </Border>
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Ditto Shell" FontSize="15" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="AboutVersionText" Text="v1.0.0 · GPL v3" FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+                  </StackPanel>
+                </StackPanel>
+                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource B.Text2}" LineHeight="20"
+                           Text="为 Ditto 剪贴板管理器提供现代界面的独立外壳。不修改 Ditto 本体，仅通过命令行、窗口消息与只读数据库交互。"/>
+
+                <Separator Margin="0,14,0,12" Background="{DynamicResource B.Divider}"/>
+
+                <Grid Margin="0,0,0,8">
+                  <TextBlock Text="项目地址" FontSize="11.5" Foreground="{DynamicResource B.Text3}"/>
+                  <TextBlock x:Name="AboutRepoLink" Text="github.com/hanqingyan3293/ditto-shell"
+                             FontSize="11.5" Foreground="{DynamicResource B.Primary}"
+                             HorizontalAlignment="Right" Cursor="Hand"
+                             MouseLeftButtonUp="AboutLink_Click" Tag="repo"/>
+                </Grid>
+
+                <Grid Margin="0,0,0,8">
+                  <TextBlock Text="问题反馈" FontSize="11.5" Foreground="{DynamicResource B.Text3}"/>
+                  <TextBlock Text="github.com/hanqingyan3293/ditto-shell/issues"
+                             FontSize="11.5" Foreground="{DynamicResource B.Primary}"
+                             HorizontalAlignment="Right" Cursor="Hand"
+                             MouseLeftButtonUp="AboutLink_Click" Tag="issues"/>
+                </Grid>
+
+                <Grid Margin="0,0,0,8">
+                  <TextBlock Text="开源协议" FontSize="11.5" Foreground="{DynamicResource B.Text3}"/>
+                  <TextBlock Text="GPL v3"
+                             FontSize="11.5" Foreground="{DynamicResource B.Text2}"
+                             HorizontalAlignment="Right"/>
+                </Grid>
+
+                <Grid Margin="0,0,0,0">
+                  <TextBlock Text="第三方" FontSize="11.5" Foreground="{DynamicResource B.Text3}"/>
+                  <TextBlock Text="Ditto · CommunityToolkit.Mvvm · HtmlRenderer.WPF · Lucide"
+                             FontSize="11.5" Foreground="{DynamicResource B.Text2}"
+                             HorizontalAlignment="Right" TextTrimming="CharacterEllipsis"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Grid>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

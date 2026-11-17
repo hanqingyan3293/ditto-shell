@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>方案 D · 极简命令面板</title>
+<style>
+:root{
+  --panel:#18181c;--panel-2:#202026;--card:#25252c;--border:#31313a;--divider:#26262d;
+  --text:#ecedf0;--text-2:#a6a6b2;--text-3:#6e6e7a;
+  --primary:#1677ff;--primary-dim:rgba(22,119,255,.14);
+  --green:#52c41a;--orange:#faad14;--red:#ff4d4f;--magenta:#eb2f96;--cyan:#13c2c2;--purple:#9254de;
+  --r:6px;--r-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;
+  background:radial-gradient(900px 520px at 50% 15%,#1c2430 0%,#0b0d11 60%,#050607 100%);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px;color:var(--text);
+  -webkit-font-smoothing:antialiased}
+.mono{font-family:"Cascadia Code","Consolas",monospace}
+.win{width:680px;background:rgba(24,24,28,.94);border-radius:var(--r-lg);border:1px solid #383840;
+  box-shadow:0 18px 60px -12px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.03) inset;overflow:hidden}
+
+/* 搜索头 */
+.head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--divider)}
+.head svg.ico{opacity:.5;flex:none}
+.q{flex:1;font-size:15px;color:var(--text);display:flex;align-items:center}
+.q .caret{width:1.5px;height:17px;background:var(--primary);margin-left:2px;display:inline-block}
+.q .ph{color:var(--text-3)}
+.hint{font-size:10px;color:var(--text-3);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+.ai{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,rgba(146,84,222,.3),rgba(22,119,255,.25));color:#cbb2ff;flex:none}
+
+/* 结果 */
+.list{padding:6px 6px 4px;max-height:352px;overflow:hidden}
+.hdr{font-size:9.5px;letter-spacing:.09em;color:var(--text-3);padding:6px 10px 4px;text-transform:uppercase}
+.r{display:flex;align-items:center;gap:10px;height:42px;padding:0 10px;border-radius:var(--r);position:relative}
+.r .bar{width:2.5px;height:20px;border-radius:2px;background:var(--text-3);opacity:.45;flex:none}
+.r.sel{background:var(--primary-dim);box-shadow:inset 0 0 0 1px rgba(22,119,255,.3)}
+.r.sel .bar{opacity:1;background:var(--primary)}
+.r .t{flex:1;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r .t .dim{color:var(--text-3);font-size:11.5px;margin-left:8px}
+.r .k{font-size:10px;color:var(--text-3);flex:none}
+.r .tg{font-size:9.5px;padding:0 5px;height:15px;line-height:15px;border-radius:3px;background:rgba(255,255,255,.07);color:var(--text-2);flex:none}
+.thumb{width:22px;height:22px;border-radius:3px;flex:none;background:linear-gradient(135deg,#334155,#7c3aed 55%,#ec4899)}
+
+/* 底部 */
+.foot{border-top:1px solid var(--divider);display:flex;align-items:center;gap:4px;padding:7px 10px;background:rgba(0,0,0,.18)}
+.tab{height:24px;padding:0 9px;border-radius:12px;font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px}
+.tab .n{font-size:9.5px;opacity:.75}
+.tab.on{background:var(--primary-dim);color:var(--primary);font-weight:600}
+.sp{flex:1}
+.kbd{font-size:9.5px;color:var(--text-3);display:flex;align-items:center;gap:3px}
+kbd{font-family:inherit;font-size:9px;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;padding:0 4px;color:var(--text-2)}
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="head">
+    <svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <div class="q"><span>gh auth</span><span class="caret"></span></div>
+    <span class="hint">6 条</span>
+    <span class="hint">Ctrl K</span>
+    <div class="ai"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></div>
+  </div>
+
+  <div class="list">
+    <div class="hdr">匹配 · 全部历史</div>
+
+    <div class="r sel">
+      <span class="bar" style="background:var(--purple)"></span>
+      <div class="t mono">gh auth login --with-token &lt; dsh-token.txt<span class="dim">— PowerShell · 昨天</span></div>
+      <span class="tg" style="background:rgba(146,84,222,.18);color:#b37feb">命令</span>
+    </div>
+
+    <div class="r">
+      <span class="bar" style="background:var(--purple)"></span>
+      <div class="t mono">gh auth status<span class="dim">— PowerShell · 昨天</span></div>
+      <span class="tg" style="background:rgba(146,84,222,.18);color:#b37feb">命令</span>
+    </div>
+
+    <div class="r">
+      <span class="bar" style="background:var(--purple)"></span>
+      <div class="t mono">gh auth setup-git<span class="dim">— PowerShell · 昨天</span></div>
+      <span class="tg" style="background:rgba(146,84,222,.18);color:#b37feb">命令</span>
+    </div>
+
+    <div class="r">
+      <span class="bar" style="background:var(--red)"></span>
+      <div class="t mono">github_pat_11BIJ••••••••••••<span class="dim">— 昨天 01:47</span></div>
+      <span class="tg" style="background:rgba(255,77,79,.18);color:#ff7875">敏感</span>
+    </div>
+
+    <div class="r">
+      <span class="bar" style="background:var(--cyan)"></span>
+      <div class="t mono">https://github.com/sabrogden/Ditto<span class="dim">— Chrome · 昨天</span></div>
+      <span class="tg" style="background:rgba(19,194,194,.16);color:#5cdbd3">链接</span>
+    </div>
+
+    <div class="r">
+      <span class="bar" style="background:var(--cyan)"></span>
+      <div class="t mono">https://github.com/mg-chao/snow-shot<span class="dim">— Chrome · 3 分钟前</span></div>
+      <span class="tg" style="background:rgba(19,194,194,.16);color:#5cdbd3">链接</span>
+    </div>
+
+    <div class="hdr" style="padding-top:8px">AI 语义匹配</div>
+    <div class="r">
+      <span class="bar" style="background:var(--magenta)"></span>
+      <div class="t">密钥怎么交给我（按安全度排序）…<span class="dim">— 相关度 87%</span></div>
+      <span class="tg">长文本</span>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="tab on"><span style="width:5px;height:5px;border-radius:2px;background:#1677ff"></span>全部<span class="n">6135</span></div>
+    <div class="tab"><span style="width:5px;height:5px;border-radius:2px;background:var(--green)"></span>今天<span class="n">48</span></div>
+    <div class="tab"><span style="width:5px;height:5px;border-radius:2px;background:var(--magenta)"></span>图片<span class="n">113</span></div>
+    <div class="tab"><span style="width:5px;height:5px;border-radius:2px;background:var(--cyan)"></span>链接<span class="n">2834</span></div>
+    <div class="tab">分组 ▾</div>
+    <div class="sp"></div>
+    <span class="kbd"><kbd>↑↓</kbd></span>
+    <span class="kbd"><kbd>↵</kbd> 粘贴</span>
+    <span class="kbd"><kbd>Tab</kbd> 排序</span>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>快速面板 · 极简呼出（日常粘贴）</title>
+<style>
+:root{
+  --bg:#ffffff;--hover:#f5f5f5;--sel:#e6f4ff;--sel-hover:#d8ecff;
+  --text:rgba(0,0,0,.88);--text2:rgba(0,0,0,.65);--text3:rgba(0,0,0,.45);
+  --line:#f0f0f0;--border:#e8e8e8;--primary:#1677ff;--brand:#722ed1;
+  --red:#ff4d4f;--magenta:#eb2f96;--purple:#722ed1;--cyan:#13c2c2;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;
+  background:linear-gradient(140deg,#eef1f6 0%,#e4e9f2 50%,#dfe5ef 100%);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:34px;
+  color:var(--text);-webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"Cascadia Code","Consolas",monospace}
+
+/* ===== 悬浮面板 ===== */
+.pop{
+  width:428px;height:556px;background:var(--bg);border-radius:12px;
+  box-shadow:0 20px 48px -12px rgba(16,24,40,.28),0 6px 16px rgba(16,24,40,.10),0 0 0 1px rgba(0,0,0,.05);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* 搜索 */
+.sbar{height:54px;flex:none;display:flex;align-items:center;gap:9px;padding:0 14px;border-bottom:1px solid var(--line)}
+.sbar svg.mag{opacity:.42;flex:none}
+.sbar .q{flex:1;font-size:14px;color:var(--text3);display:flex;align-items:center}
+.sbar .caret{width:1.5px;height:16px;background:var(--primary);margin-left:2px}
+.sbar .esc{font-size:10px;color:var(--text3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;background:#fff}
+
+/* 列表 */
+.lst{flex:1;overflow:hidden;padding:6px 6px 0}
+.it{
+  display:flex;align-items:center;gap:9px;height:46px;padding:0 9px;border-radius:6px;
+}
+.it:hover{background:var(--hover)}
+.it.sel{background:var(--sel)}
+.it.sel:hover{background:var(--sel-hover)}
+.idx{
+  width:15px;flex:none;text-align:right;font-size:10.5px;color:var(--text3);
+  font-variant-numeric:tabular-nums;
+}
+.it.sel .idx{color:var(--primary);font-weight:600}
+.it .tx{flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it.sel .tx{color:#0b57c9}
+.it .tm{font-size:10.5px;color:var(--text3);flex:none}
+.dot{width:5px;height:5px;border-radius:50%;flex:none}
+.d-text{background:#1677ff}.d-code{background:#722ed1}.d-link{background:#13c2c2}
+.d-img{background:#eb2f96}.d-file{background:#fa8c16}.d-secret{background:#ff4d4f}
+
+.thumb{width:22px;height:22px;border-radius:4px;flex:none;background:linear-gradient(135deg,#a78bfa,#ec4899)}
+.badge{
+  font-size:9.5px;padding:0 4px;height:15px;line-height:15px;border-radius:3px;flex:none;
+  background:#fff2f0;color:var(--red);border:1px solid #ffccc7;
+}
+
+/* 底部 */
+.fbar{
+  height:44px;flex:none;border-top:1px solid var(--line);display:flex;align-items:center;
+  gap:12px;padding:0 12px 0 14px;font-size:10.5px;color:var(--text3);
+}
+.fbar kbd{font-family:inherit;font-size:9.5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;padding:0 4px;background:#fff;color:var(--text2)}
+.fbar .sp{flex:1}
+.mgr{
+  height:26px;padding:0 9px;border-radius:5px;display:flex;align-items:center;gap:5px;
+  font-size:11.5px;color:var(--primary);background:rgba(22,119,255,.08);border:1px solid rgba(22,119,255,.18);
+  font-weight:600;
+}
+.mgr:hover{background:rgba(22,119,255,.14)}
+</style>
+</head>
+<body>
+<div class="pop">
+  <!-- 搜索 -->
+  <div class="sbar">
+    <svg class="mag" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <div class="q"><span>搜索历史…</span><span class="caret"></span></div>
+    <span class="esc">Esc</span>
+  </div>
+
+  <!-- 列表 -->
+  <div class="lst">
+    <div class="it sel">
+      <span class="idx">1</span>
+      <span class="dot d-link"></span>
+      <span class="tx mono">https://github.com/mg-chao/snow-shot</span>
+      <span class="tm">3 分</span>
+    </div>
+
+    <div class="it">
+      <span class="idx">2</span>
+      <span class="dot d-text"></span>
+      <span class="tx">不做云同步、不做多机、不做手机端、不做密码管理。</span>
+      <span class="tm">8 分</span>
+    </div>
+
+    <div class="it">
+      <span class="idx">3</span>
+      <span class="dot d-code"></span>
+      <span class="tx mono">gh auth login --with-token &lt; dsh-token.txt</span>
+      <span class="tm">昨天</span>
+    </div>
+
+    <div class="it">
+      <span class="idx">4</span>
+      <span class="dot d-code"></span>
+      <span class="tx mono">gh auth status</span>
+      <span class="tm">昨天</span>
+    </div>
+
+    <div class="it">
+      <span class="idx">5</span>
+      <span class="dot d-secret"></span>
+      <span class="tx mono">github_pat_11BIJ••••••••••</span>
+      <span class="badge">敏感</span>
+      <span class="tm">昨天</span>
+    </div>
+
+    <div class="it">
+      <span class="idx">6</span>
+      <span class="thumb"></span>
+      <span class="tx">截图 2026-11-15 052411.png</span>
+      <span class="tm">昨天</span>
+    </div>
+
+    <div class="it">
+      <span class="idx">7</span>
+      <span class="dot d-file"></span>
+      <span class="tx mono">D:\File\GitHub\令牌</span>
+      <span class="tm">昨天</span>
+    </div>
+
+    <div class="it">
+      <span class="idx">8</span>
+      <span class="dot d-text"></span>
+      <span class="tx">密钥怎么交给我（按安全度排序）方案 A（推荐）：本地文件…</span>
+      <span class="tm">昨天</span>
+    </div>
+
+    <div class="it">
+      <span class="idx">9</span>
+      <span class="dot d-code"></span>
+      <span class="tx mono">conn = sqlite3.connect("file:Ditto.db?mode=ro")</span>
+      <span class="tm">11-14</span>
+    </div>
+
+    <div class="it">
+      <span class="idx">10</span>
+      <span class="dot d-text"></span>
+      <span class="tx">我想二开 ditto 软件，参考这个截图软件的 UI 界面，全部由 AI…</span>
+      <span class="tm">11-15</span>
+    </div>
+  </div>
+
+  <!-- 底部 -->
+  <div class="fbar">
+    <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+    <span><kbd>↵</kbd> 粘贴</span>
+    <span><kbd>1-9</kbd> 直粘</span>
+    <span class="sp"></span>
+    <div class="mgr">
+      管理历史
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </div>
+  </div>
+</div>
+</body>
+</html>

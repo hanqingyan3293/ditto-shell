@@ -1,0 +1,263 @@
+<UserControl x:Class="DittoShell.App.Views.AiDrawerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:DittoShell.App.Controls"
+             xmlns:vm="clr-namespace:DittoShell.App.ViewModels">
+
+  <Border Background="{DynamicResource B.Bg}"
+          BorderBrush="{DynamicResource B.Divider}" BorderThickness="1,0,0,0">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition x:Name="SessionCol" Width="0"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- 左侧：会话列表 -->
+      <Border Grid.Column="0" Background="{DynamicResource B.BgSide}"
+              BorderBrush="{DynamicResource B.Divider}" BorderThickness="0,0,1,0">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+
+          <Grid Grid.Row="0" Margin="10,10,6,6">
+            <TextBlock Text="会话" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"/>
+            <Button HorizontalAlignment="Right" Width="20" Height="20" Padding="0"
+                    Style="{StaticResource FlatButton}" Background="Transparent"
+                    Command="{Binding NewSessionCommand}" ToolTip="新会话">
+              <controls:Icon Kind="Plus" Width="11" Height="11"
+                             Stroke="{DynamicResource B.Text3}"/>
+            </Button>
+          </Grid>
+
+          <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Sessions}" Margin="5,0,5,8">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:SessionItemVM}">
+                  <Border CornerRadius="4" Padding="7,5" Margin="0,1"
+                          Background="Transparent" Cursor="Hand" Tag="{Binding}"
+                          MouseLeftButtonUp="Session_Click">
+                    <Border.Style>
+                      <Style TargetType="Border">
+                        <Style.Triggers>
+                          <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource B.Hover}"/>
+                          </Trigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Border.Style>
+                    <StackPanel>
+                      <TextBlock Text="{Binding Title}" FontSize="11"
+                                 Foreground="{DynamicResource B.Text2}"
+                                 TextTrimming="CharacterEllipsis"/>
+                      <TextBlock Text="{Binding TimeText}" FontSize="9.5"
+                                 Foreground="{DynamicResource B.Text3}" Margin="0,1,0,0"/>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Grid>
+      </Border>
+
+      <!-- 右侧：对话 -->
+      <Grid Grid.Column="1">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="40"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="22"/>
+        </Grid.RowDefinitions>
+
+        <!-- 顶栏 -->
+        <Grid Grid.Row="0" Background="{DynamicResource B.BgSide}">
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
+            <Button Width="22" Height="22" Padding="0" Style="{StaticResource FlatButton}"
+                    Background="Transparent" Click="ToggleSessionCol_Click" ToolTip="会话列表">
+              <controls:Icon Kind="PanelRight" Width="12" Height="12"
+                             Stroke="{DynamicResource B.Text3}"/>
+            </Button>
+            <TextBlock Text="{Binding SessionTitle}" FontSize="12" FontWeight="SemiBold"
+                       Foreground="{DynamicResource B.Text}" Margin="8,0,0,0"
+                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="200"/>
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                      VerticalAlignment="Center" Margin="0,0,6,0">
+            <Button Width="24" Height="24" Padding="0" Style="{StaticResource FlatButton}"
+                    Background="Transparent" Command="{Binding NewSessionCommand}" ToolTip="新会话">
+              <controls:Icon Kind="Plus" Width="11" Height="11"
+                             Stroke="{DynamicResource B.Text3}"/>
+            </Button>
+            <Button Width="24" Height="24" Padding="0" Style="{StaticResource FlatButton}"
+                    Background="Transparent" Click="Close_Click" ToolTip="关闭">
+              <controls:Icon Kind="Close" Width="11" Height="11"
+                             Stroke="{DynamicResource B.Text3}"/>
+            </Button>
+          </StackPanel>
+        </Grid>
+
+        <!-- 标签页 -->
+        <Border Grid.Row="1" BorderBrush="{DynamicResource B.Divider}" BorderThickness="0,0,0,1">
+          <StackPanel Orientation="Horizontal" Margin="10,0">
+            <Button x:Name="TabChat" Height="30" Padding="10,0" Background="Transparent"
+                    BorderThickness="0" Cursor="Hand" Click="Tab_Click" Tag="chat"
+                    Content="对话" FontSize="11.5" Foreground="{DynamicResource B.Text2}"/>
+            <Button x:Name="TabTrace" Height="30" Padding="10,0" Background="Transparent"
+                    BorderThickness="0" Cursor="Hand" Click="Tab_Click" Tag="trace"
+                    Content="轨迹" FontSize="11.5" Foreground="{DynamicResource B.Text3}"/>
+            <Button x:Name="TabStats" Height="30" Padding="10,0" Background="Transparent"
+                    BorderThickness="0" Cursor="Hand" Click="Tab_Click" Tag="stats"
+                    Content="用量" FontSize="11.5" Foreground="{DynamicResource B.Text3}"/>
+          </StackPanel>
+        </Border>
+
+        <!-- 对话区 -->
+        <ScrollViewer Grid.Row="2" x:Name="ChatScroll" VerticalScrollBarVisibility="Auto"
+                      Padding="12,10"
+                      Visibility="{Binding IsChatTab, Converter={StaticResource BoolToVis}}">
+          <ItemsControl ItemsSource="{Binding Bubbles}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type vm:ChatBubbleVM}">
+                <Border Margin="0,0,0,10">
+                  <Border.Style>
+                    <Style TargetType="Border">
+                      <Setter Property="HorizontalAlignment" Value="Left"/>
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsUser}" Value="True">
+                          <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </Border.Style>
+
+                  <StackPanel>
+                    <Border Background="{DynamicResource B.Primary}" CornerRadius="10,10,2,10"
+                            Padding="10,7" MaxWidth="320"
+                            Visibility="{Binding IsUser, Converter={StaticResource BoolToVis}}">
+                      <TextBlock Text="{Binding Text}" FontSize="12" Foreground="White"
+                                 TextWrapping="Wrap"/>
+                    </Border>
+
+                    <Border Background="{DynamicResource B.BgSide}" CornerRadius="10,10,10,2"
+                            Padding="10,8" MaxWidth="340" BorderThickness="1"
+                            BorderBrush="{DynamicResource B.Divider}"
+                            Visibility="{Binding IsAssistant, Converter={StaticResource BoolToVis}}">
+                      <TextBlock Text="{Binding Text}" FontSize="12"
+                                 Foreground="{DynamicResource B.Text}"
+                                 TextWrapping="Wrap" LineHeight="20"/>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Margin="2,2,0,0"
+                                Visibility="{Binding IsEvent, Converter={StaticResource BoolToVis}}">
+                      <controls:Icon Kind="{Binding EventIcon}" Width="10" Height="10"
+                                     Stroke="{DynamicResource B.Text3}" Margin="0,0,5,0"
+                                     VerticalAlignment="Center"/>
+                      <TextBlock Text="{Binding Text}" FontSize="10"
+                                 Foreground="{DynamicResource B.Text3}"
+                                 TextWrapping="Wrap" MaxWidth="320"/>
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+
+        <!-- 轨迹页 -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="10,8"
+                      Visibility="{Binding IsTraceTab, Converter={StaticResource BoolToVis}}">
+          <ItemsControl ItemsSource="{Binding TraceItems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type vm:TraceItemVM}">
+                <Border Background="{DynamicResource B.BgSide}" CornerRadius="4"
+                        Padding="8,5" Margin="0,0,0,4">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="Auto"/>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                      <TextBlock Text="{Binding Status}" FontSize="10"
+                                 Foreground="{DynamicResource B.Primary}"/>
+                      <TextBlock Text="{Binding RoundText}" FontSize="8.5"
+                                 Foreground="{DynamicResource B.Text3}" Margin="0,2,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1">
+                      <TextBlock Text="{Binding Text}" FontSize="10.5"
+                                 Foreground="{DynamicResource B.Text2}"
+                                 TextWrapping="Wrap" FontFamily="{StaticResource Font.Mono}"/>
+                      <TextBlock Text="{Binding Detail}" FontSize="9.5"
+                                 Foreground="{DynamicResource B.Text3}"
+                                 TextWrapping="Wrap" Margin="0,2,0,0"
+                                 />
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="2" Text="{Binding TimeText}" FontSize="9"
+                               Foreground="{DynamicResource B.Text3}"
+                               VerticalAlignment="Top" Margin="6,0,0,0"/>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+
+        <!-- 用量页 -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="14,12"
+                      Visibility="{Binding IsStatsTab, Converter={StaticResource BoolToVis}}">
+          <TextBlock Text="{Binding StatsSummary}" FontSize="11.5"
+                     Foreground="{DynamicResource B.Text2}"
+                     FontFamily="{StaticResource Font.Mono}"
+                     TextWrapping="Wrap" LineHeight="22"/>
+        </ScrollViewer>
+
+        <!-- 输入区 -->
+        <Border Grid.Row="3" BorderBrush="{DynamicResource B.Divider}" BorderThickness="0,1,0,0"
+                Padding="10,8">
+          <StackPanel>
+            <Border CornerRadius="8" Background="{DynamicResource B.InputBg}"
+                    BorderBrush="{DynamicResource B.Border}" BorderThickness="1">
+              <TextBox x:Name="ChatInput" Style="{StaticResource BorderlessTextBox}"
+                       Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+                       FontSize="12.5" Margin="10,7" MinHeight="36" MaxHeight="100"
+                       TextWrapping="Wrap" AcceptsReturn="True"
+                       VerticalContentAlignment="Top"
+                       PreviewKeyDown="ChatInput_PreviewKeyDown"/>
+            </Border>
+
+            <Grid Margin="0,7,0,0">
+              <Button Style="{StaticResource FlatButton}" Height="24" Padding="8,0"
+                      HorizontalAlignment="Left" Command="{Binding ClearCommand}">
+                <TextBlock Text="清空" FontSize="10.5"
+                           Foreground="{DynamicResource B.Text3}"/>
+              </Button>
+              <Button HorizontalAlignment="Right" Style="{StaticResource PrimaryButton}"
+                      Height="26" Padding="16,0" Command="{Binding SendCommand}">
+                <TextBlock Text="发送" FontSize="11.5" Foreground="White"/>
+              </Button>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- 状态栏 -->
+        <Border Grid.Row="4" Background="{DynamicResource B.BgSide}">
+          <Grid Margin="10,0">
+            <TextBlock Text="{Binding UsageText}" FontSize="9.5"
+                       Foreground="{DynamicResource B.Text3}" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding StatusText}" FontSize="9.5"
+                       Foreground="{DynamicResource B.Text3}"
+                       HorizontalAlignment="Right" VerticalAlignment="Center"/>
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>

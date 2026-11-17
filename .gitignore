@@ -1,0 +1,43 @@
+# ══════ 构建产物 ══════
+bin/
+obj/
+publish/
+*.user
+*.suo
+.vs/
+
+# ══════ 运行时数据（含用户数据和密钥）══════
+data/
+backup/
+备份/
+*.db
+*.db-shm
+*.db-wal
+*.log
+config.json
+
+# ══════ 只读上游源码（体积大，不发布）══════
+reference/
+
+# ══════ 系统 ══════
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ══════ 临时脚本 ══════
+tools/*.py
+tools/AgentTest/
+tools/verify-v2/
+tools/menu-verification/
+!tools/check-build.ps1
+
+# ══════ IDE ══════
+.idea/
+*.swp
+*.zip
+*.pdb
+
+# ══════ 调试截图（README 只引用 docs/screenshots/）══════
+docs/mockups/shots/
+docs/mockups/*.png
+!docs/screenshots/

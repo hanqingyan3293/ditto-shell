@@ -1,0 +1,41 @@
+<Window x:Class="DittoShell.App.Views.TextInputDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Input" Width="380" Height="180"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="NoResize">
+
+  <Grid Margin="12">
+    <Border Background="{DynamicResource B.Bg}" CornerRadius="8">
+      <Border.Effect>
+        <DropShadowEffect BlurRadius="24" ShadowDepth="6" Direction="270" Opacity="0.24" Color="#101828"/>
+      </Border.Effect>
+
+      <Grid Margin="18,16">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock x:Name="TitleText" FontSize="13.5" FontWeight="SemiBold"
+                   Foreground="{DynamicResource B.Text}" Margin="0,0,0,10"/>
+
+        <Border Grid.Row="1" Height="34" CornerRadius="6" Background="{DynamicResource B.Bg}"
+                BorderBrush="{DynamicResource B.Border}" BorderThickness="1">
+          <TextBox x:Name="InputBox" Style="{StaticResource BorderlessTextBox}"
+                   Margin="10,0" FontSize="13" VerticalAlignment="Center"
+                   KeyDown="Input_KeyDown"/>
+        </Border>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom" Margin="0,14,0,0">
+          <Button Content="取消" Style="{StaticResource ChipButton}" Height="30" Width="72"
+                  Click="Cancel_Click"/>
+          <Button Content="确定" Style="{StaticResource PrimaryButton}" Height="30" Width="72"
+                  Margin="8,0,0,0" Click="Ok_Click"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

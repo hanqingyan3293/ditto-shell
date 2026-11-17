@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>DittoShell · UI 方案对比</title>
+<style>
+:root{--bg:#0d0f13;--panel:#17171b;--border:#2c2c34;--text:#e8e8ec;--text-2:#9d9daa;--text-3:#6a6a76;--primary:#1677ff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);
+  padding:36px 40px 60px;-webkit-font-smoothing:antialiased}
+h1{font-size:20px;font-weight:650;margin-bottom:6px}
+.sub{font-size:12.5px;color:var(--text-3);margin-bottom:26px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card img{display:block;width:100%;height:auto;border-bottom:1px solid var(--border)}
+.meta{padding:14px 16px 16px}
+.meta h2{font-size:14px;font-weight:650;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:rgba(22,119,255,.16);color:#69b1ff}
+.badge.rec{background:rgba(82,196,26,.16);color:#95de64}
+.meta p{font-size:12px;color:var(--text-2);line-height:1.7;margin-top:6px}
+.meta ul{margin:8px 0 0 16px;font-size:11.5px;color:var(--text-3);line-height:1.8}
+.meta li::marker{color:var(--primary)}
+a{color:#69b1ff;text-decoration:none;font-size:11.5px}
+</style>
+</head>
+<body>
+<h1>DittoShell · 四个界面方案</h1>
+<div class="sub">全部按 Ant Design 设计体系（主色 #1677FF / 圆角 6px / 8 的倍数间距）绘制 · 点击标题可打开交互原型</div>
+
+<div class="grid">
+  <div class="card">
+    <img src="shots/A.png" alt="方案 A">
+    <div class="meta">
+      <h2>方案 A · 侧栏 + 单列 <span class="badge">稳</span></h2>
+      <p>最接近 Ditto 的使用习惯，左侧固定分组栏，右侧单列卡片流。</p>
+      <ul>
+        <li>优点：分组一眼看全，信息密度高，学习成本最低</li>
+        <li>缺点：右侧只显示一列，图片预览小</li>
+      </ul>
+      <p><a href="A-sidebar.html">打开原型 →</a></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <img src="shots/B.png" alt="方案 B">
+    <div class="meta">
+      <h2>方案 B · 顶部搜索 + 横滑分组 + 网格 <span class="badge rec">最像 snow-shot</span></h2>
+      <p>顶部大搜索框，分组做成横滑胶囊，内容用双列卡片网格。</p>
+      <ul>
+        <li>优点：视觉最现代，图片/长文本有呼吸感，搜索框最突出</li>
+        <li>缺点：分组多时胶囊会挤，需要横向滚动</li>
+      </ul>
+      <p><a href="B-grid.html">打开原型 →</a></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <img src="shots/C.png" alt="方案 C">
+    <div class="meta">
+      <h2>方案 C · 三栏（分组 / 列表 / 预览） <span class="badge">强</span></h2>
+      <p>左分组、中列表、右预览，选中即可看全文、格式、粘贴次数。</p>
+      <ul>
+        <li>优点：找东西最快，"这条到底是什么"一目了然</li>
+        <li>缺点：窗口要宽（1000px+），小屏或低分辨率偏挤</li>
+      </ul>
+      <p><a href="C-three-pane.html">打开原型 →</a></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <img src="shots/D.png" alt="方案 D">
+    <div class="meta">
+      <h2>方案 D · 极简命令面板 <span class="badge">轻</span></h2>
+      <p>没有侧栏，只有搜索 + 结果 + 底部胶囊，键盘优先（Raycast 风）。</p>
+      <ul>
+        <li>优点：最轻最快，弹出无负担，纯键盘操作</li>
+        <li>缺点：不适合"浏览"和"整理"，分组只是底部一行</li>
+      </ul>
+      <p><a href="D-command.html">打开原型 →</a></p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
