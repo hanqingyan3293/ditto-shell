@@ -1653,6 +1653,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnCurrentPageChanged(ShellPage value)
     {
+        try { Services.AiSessionGuard.WindowState("Page=" + value); } catch { }
+
         OnPropertyChanged(nameof(IsClipPageVisible));
         OnPropertyChanged(nameof(IsSettingsVisible));
         OnPropertyChanged(nameof(IsStatsVisible));

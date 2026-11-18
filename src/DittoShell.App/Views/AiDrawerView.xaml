@@ -223,6 +223,9 @@
         <Border Grid.Row="3" BorderBrush="{DynamicResource B.Divider}" BorderThickness="0,1,0,0"
                 Padding="10,8">
           <StackPanel>
+            <!-- 目标条带（照抄 DSH 的 composer context strip） -->
+            <ContentControl x:Name="GoalStripHost"/>
+
             <Border CornerRadius="8" Background="{DynamicResource B.InputBg}"
                     BorderBrush="{DynamicResource B.Border}" BorderThickness="1">
               <TextBox x:Name="ChatInput" Style="{StaticResource BorderlessTextBox}"
@@ -233,13 +236,23 @@
                        PreviewKeyDown="ChatInput_PreviewKeyDown"/>
             </Border>
 
+            <!-- 权限 + 计划 + 目标（照抄 DSH 的输入框下方工具条） -->
             <Grid Margin="0,7,0,0">
-              <Button Style="{StaticResource FlatButton}" Height="24" Padding="8,0"
-                      HorizontalAlignment="Left" Command="{Binding ClearCommand}">
-                <TextBlock Text="清空" FontSize="10.5"
-                           Foreground="{DynamicResource B.Text3}"/>
-              </Button>
-              <Button HorizontalAlignment="Right" Style="{StaticResource PrimaryButton}"
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+
+              <ContentControl Grid.Column="0" x:Name="PermissionHost"/>
+
+              <ContentControl Grid.Column="1" x:Name="PlanBtnHost" Margin="6,0,0,0"/>
+
+              <ContentControl Grid.Column="2" x:Name="GoalBtnHost" Margin="6,0,0,0"/>
+
+              <Button Grid.Column="4" Style="{StaticResource PrimaryButton}"
                       Height="26" Padding="16,0" Command="{Binding SendCommand}">
                 <TextBlock Text="发送" FontSize="11.5" Foreground="White"/>
               </Button>

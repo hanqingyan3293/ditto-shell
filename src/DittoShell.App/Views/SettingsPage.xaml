@@ -109,12 +109,6 @@
               <TextBlock Text="{loc:Str settings.tab.data}" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
             </StackPanel>
           </ListBoxItem>
-          <ListBoxItem Tag="progress">
-            <StackPanel Orientation="Horizontal" Margin="10,0">
-              <controls:Icon Kind="Chart" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
-              <TextBlock Text="{loc:Str settings.tab.progress}" FontSize="13" Foreground="{DynamicResource B.Text2}" VerticalAlignment="Center"/>
-            </StackPanel>
-          </ListBoxItem>
           <ListBoxItem Tag="about">
             <StackPanel Orientation="Horizontal" Margin="10,0">
               <controls:Icon Kind="Info" Width="15" Height="15" Stroke="{DynamicResource B.Text3}" Margin="0,0,9,0"/>
@@ -504,22 +498,50 @@
                 <Grid><TextBlock Text="库大小" FontSize="12.5"/><TextBlock Text="830 MB" HorizontalAlignment="Right" FontSize="11.5" Foreground="{DynamicResource B.Text3}"/></Grid>
               </StackPanel>
             </Border>
+            <!-- ═══ 标签管理 ═══ -->
+            <Border Background="{DynamicResource B.CardBg}" CornerRadius="6" Padding="16" Margin="0,0,0,16"
+                    BorderBrush="{DynamicResource B.Divider}" BorderThickness="1">
+              <StackPanel>
+                <TextBlock Text="标签" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+                <Grid Margin="0,0,0,8">
+                  <TextBlock Text="标签总数" FontSize="12.5"/>
+                  <TextBlock x:Name="TagTotalText" Text="—" HorizontalAlignment="Right"
+                             FontSize="11.5" Foreground="{DynamicResource B.Text3}"/>
+                </Grid>
+
+                <Grid Margin="0,0,0,8">
+                  <TextBlock Text="空标签（无条目引用）" FontSize="12.5"/>
+                  <TextBlock x:Name="TagOrphanText" Text="—" HorizontalAlignment="Right"
+                             FontSize="11.5" Foreground="{DynamicResource B.Warning}"/>
+                </Grid>
+
+                <Grid Margin="0,0,0,12">
+                  <TextBlock Text="有引用" FontSize="12.5"/>
+                  <TextBlock x:Name="TagUsedText" Text="—" HorizontalAlignment="Right"
+                             FontSize="11.5" Foreground="{DynamicResource B.Text3}"/>
+                </Grid>
+
+                <StackPanel Orientation="Horizontal">
+                  <Button x:Name="PurgeOrphanBtn" Content="清理空标签"
+                          Style="{StaticResource ChipButton}" Height="28"
+                          Click="PurgeOrphanTags_Click"/>
+                  <Button Content="刷新" Style="{StaticResource ChipButton}" Height="28"
+                          Margin="8,0,0,0" Click="RefreshTags_Click"/>
+                  <Button Content="查看所有标签…" Style="{StaticResource ChipButton}" Height="28"
+                          Margin="8,0,0,0" Click="ViewAllTags_Click"/>
+                </StackPanel>
+
+                <TextBlock x:Name="TagStatusText" FontSize="11" Margin="0,10,0,0"
+                           Foreground="{DynamicResource B.Text3}" TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+
             <Button Content="{loc:Str settings.data.backup}" Style="{StaticResource ChipButton}" HorizontalAlignment="Left" Margin="0,0,0,10" Click="DataBackup_Click"/>
             <Button Content="{loc:Str settings.data.export}" Style="{StaticResource ChipButton}" HorizontalAlignment="Left" Margin="0,0,0,10" Click="DataExport_Click"/>
             <Button Content="{loc:Str settings.data.cleanup}" Style="{StaticResource ChipButton}" HorizontalAlignment="Left" Click="DataCleanup_Click"/>
             <TextBlock x:Name="DataStatusText" FontSize="11.5" Margin="0,12,0,0"
                        Foreground="{DynamicResource B.Text3}" TextWrapping="Wrap"/>
-          </StackPanel>
-
-          <!-- ═══ 开发进度 ═══ -->
-          <StackPanel x:Name="PageProgress" Visibility="Collapsed">
-            <Grid Margin="0,0,0,4">
-              <TextBlock Text="{loc:Str progress.title}" FontSize="16" FontWeight="SemiBold"/>
-              <TextBlock x:Name="PercentText" HorizontalAlignment="Right" FontSize="13"
-                         Foreground="{DynamicResource B.Primary}" FontWeight="SemiBold"/>
-            </Grid>
-            <TextBlock x:Name="PercentSub" FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,0,0,18"/>
-            <ItemsControl x:Name="ProgressList"/>
           </StackPanel>
 
           <!-- ═══ 关于 ═══ -->
@@ -529,19 +551,12 @@
                     BorderBrush="{DynamicResource B.Divider}" BorderThickness="1">
               <StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                  <Border Width="44" Height="44" CornerRadius="10" Margin="0,0,14,0">
-                    <Border.Background>
-                      <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#9254DE" Offset="0"/>
-                        <GradientStop Color="#1677FF" Offset="1"/>
-                      </LinearGradientBrush>
-                    </Border.Background>
-                    <TextBlock Text="D" Foreground="White" FontSize="20" FontWeight="Bold"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                  </Border>
+                  <Image Width="48" Height="48" Margin="0,0,14,0"
+                         Source="pack://application:,,,/Assets/logo-256.png"
+                         RenderOptions.BitmapScalingMode="HighQuality"/>
                   <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="Ditto Shell" FontSize="15" FontWeight="SemiBold"/>
-                    <TextBlock x:Name="AboutVersionText" Text="v1.0.0 · GPL v3" FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
+                    <TextBlock x:Name="AboutVersionText" Text="v1.0.1 · GPL v3" FontSize="11.5" Foreground="{DynamicResource B.Text3}" Margin="0,3,0,0"/>
                   </StackPanel>
                 </StackPanel>
                 <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource B.Text2}" LineHeight="20"

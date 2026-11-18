@@ -32,6 +32,9 @@ public sealed class AnalyzeResult
     public string? Error { get; init; }
     public int Tokens { get; init; }
     public double Cost { get; init; }
+
+    /// <summary>标签词表（AI 生成，用户可改）。</summary>
+    public List<TagVocabItem> TagVocabulary { get; init; } = new();
 }
 
 /// <summary>
@@ -154,7 +157,11 @@ public sealed class OrganizeAnalyzer
       "groups": [...]
     }
   ],
-  "recommendation": "推荐第几套（从 1 开始），一句话理由"
+  "recommendation": "推荐第几套（从 1 开始），一句话理由",
+  "tagVocabulary": [
+    {"name": "游戏", "expected": 120},
+    {"name": "配置", "expected": 85}
+  ]
 }
 
 要求：
@@ -164,6 +171,12 @@ public sealed class OrganizeAnalyzer
 - 每组给 estimate（预估条数），总和不超过样本总量
 - 最多 12 组，避免碎片化
 - 如果只要一套方案，schemes 数组只放一个
+- **tagVocabulary 是标签词表**：20-40 个标签，覆盖所有条目
+  这是给后续批量分类用的"合法标签集合"，
+  分类时 AI 只能从里面选，所以必须：
+  · 名称简洁（2-6 个汉字）
+  · 互不重叠（不要同时有"游戏"和"游戏相关"）
+  · expected 是预估会用到该标签的条目数
 """;
 
         var result = await _ai.RawCompleteAsync(system, sb.ToString(), 384000, 0.3f, ct);
@@ -187,12 +200,14 @@ public sealed class OrganizeAnalyzer
             Profile = parsed.Value.Profile,
             Schemes = parsed.Value.Schemes,
             Recommendation = parsed.Value.Recommendation,
+            TagVocabulary = parsed.Value.Vocab,
             Tokens = result.Tokens ?? 0,
             Cost = (result.Tokens ?? 0) / 1_000_000.0 * 2.0
         };
     }
 
-    private static (string Profile, List<TaxonomyScheme> Schemes, string Recommendation)? ParseJson(string raw)
+    private static (string Profile, List<TaxonomyScheme> Schemes, string Recommendation,
+        List<TagVocabItem> Vocab)? ParseJson(string raw)
     {
         try
         {
@@ -253,7 +268,23 @@ public sealed class OrganizeAnalyzer
                 }
             }
 
-            return (profile, schemes, rec);
+            // 标签词表
+            var vocab = new List<TagVocabItem>();
+            if (root.TryGetProperty("tagVocabulary", out var tv) &&
+                tv.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var tvItem in tv.EnumerateArray())
+                {
+                    var name = tvItem.TryGetProperty("name", out var ne) ? ne.GetString() ?? "" : "";
+                    if (string.IsNullOrWhiteSpace(name)) continue;
+                    var exp = tvItem.TryGetProperty("expected", out var ee) &&
+                              ee.ValueKind == System.Text.Json.JsonValueKind.Number
+                        ? ee.GetInt32() : 0;
+                    vocab.Add(new TagVocabItem { Name = name.Trim(), Expected = exp });
+                }
+            }
+
+            return (profile, schemes, rec, vocab);
         }
         catch { return null; }
     }

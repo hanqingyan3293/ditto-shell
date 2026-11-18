@@ -5,7 +5,8 @@
         Title="移到分组" Width="400" Height="480"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-        ResizeMode="NoResize" FontFamily="{StaticResource Font.UI}">
+        ResizeMode="NoResize" FontFamily="{StaticResource Font.UI}"
+        Icon="pack://application:,,,/Assets/app.ico">
 
   <!-- 外层留 10px 给阴影 -->
   <Grid Margin="10">

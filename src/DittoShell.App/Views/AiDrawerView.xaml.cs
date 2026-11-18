@@ -13,6 +13,8 @@ public partial class AiDrawerView : UserControl
     public AiDrawerView()
     {
         InitializeComponent();
+        InitModes();
+        InitConfirmAndReview();
     }
 
     /// <summary>外部设置 DataContext（主窗口的 AiChatViewModel）。</summary>
@@ -20,7 +22,16 @@ public partial class AiDrawerView : UserControl
     {
         DataContext = vm;
         vm.EnsureWelcome();
+
+        // 首次 Attach 时尝试恢复上次的目标
+        if (!_goalRestoreTried)
+        {
+            _goalRestoreTried = true;
+            _ = RestoreGoalAsync();
+        }
     }
+
+    private bool _goalRestoreTried;
 
     public void FocusInput()
     {

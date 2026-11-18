@@ -30,6 +30,14 @@ public partial class MainWindowView : Window
             EnableChromeHitTest();
             AiDrawer.CloseRequested += () => SetAiDrawer(false);
 
+            // 诊断：窗口状态变化时记录（排查「离开窗口就停」）
+            StateChanged += (_, _) =>
+                Services.AiSessionGuard.WindowState(WindowState.ToString());
+            Deactivated += (_, _) =>
+                Services.AiSessionGuard.WindowState("Deactivated");
+            Activated += (_, _) =>
+                Services.AiSessionGuard.WindowState("Activated");
+
             // /ai 命令 → 打开抽屉，可带初始问题
             _vm.RequestOpenAiDrawer += initial =>
             {
@@ -131,13 +139,6 @@ public partial class MainWindowView : Window
     {
         _vm.CurrentPage = ShellPage.Settings;
         SettingsPageView.NavigateTo(tag);
-    }
-
-    /// <summary>切到「开发进度」分页。</summary>
-    public void GoToProgress()
-    {
-        _vm.CurrentPage = ShellPage.Settings;
-        SettingsPageView.NavigateTo("progress");
     }
 
     /// <summary>切到「AI」分页。</summary>

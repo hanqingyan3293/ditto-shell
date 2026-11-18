@@ -17,7 +17,6 @@ public partial class SettingsPage : UserControl
     {
         InitializeComponent();
         NavList.SelectedIndex = 0;
-        BuildProgress();
         InitDittoPage();
         InitAiPage();
         InitHotkeyPage();
@@ -643,7 +642,6 @@ public partial class SettingsPage : UserControl
         if (PageSidebar is not null) PageSidebar.Visibility = tag == "sidebar" ? Visibility.Visible : Visibility.Collapsed;
         if (PageBackup is not null) PageBackup.Visibility = tag == "backup" ? Visibility.Visible : Visibility.Collapsed;
         PageDitto.Visibility = tag == "ditto" ? Visibility.Visible : Visibility.Collapsed;
-        PageProgress.Visibility = tag == "progress" ? Visibility.Visible : Visibility.Collapsed;
         PageAbout.Visibility = tag == "about" ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -653,134 +651,6 @@ public partial class SettingsPage : UserControl
         ThemeManager.Apply(idx == 1 ? "dark" : "light");
     }
 
-    // ───────── 开发进度页 ─────────
-
-    private void BuildProgress()
-    {
-        var doc = ProgressService.Load();
-        int total = doc.Batches.Sum(b => b.Total);
-        int done = doc.Batches.Sum(b => b.Done);
-        double pct = total == 0 ? 0 : (double)done / total * 100;
-
-        PercentText.Text = $"{pct:F0}%";
-        PercentSub.Text = $"{done} / {total} 项已完成 · 更新于 {doc.Updated}";
-
-        ProgressList.Items.Clear();
-        foreach (var batch in doc.Batches)
-            ProgressList.Items.Add(BuildBatchCard(batch));
-    }
-
-    private UIElement BuildBatchCard(ProgressBatch b)
-    {
-        var border = new Border
-        {
-            Background = Res("B.CardBg") as Brush,
-            BorderBrush = Res("B.Divider") as Brush,
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(14, 12, 14, 12),
-            Margin = new Thickness(0, 0, 0, 10)
-        };
-
-        var root = new StackPanel();
-
-        var head = new Grid();
-        head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-        var badge = new Border
-        {
-            Background = b.AllDone ? new SolidColorBrush(Color.FromArgb(26, 82, 196, 26))
-                                   : b.Started ? new SolidColorBrush(Color.FromArgb(26, 22, 119, 255))
-                                   : new SolidColorBrush(Color.FromArgb(20, 140, 140, 150)),
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(6, 1, 6, 1),
-            Margin = new Thickness(0, 0, 9, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Child = new TextBlock
-            {
-                Text = b.Id,
-                FontSize = 10,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = b.AllDone ? new SolidColorBrush(Color.FromRgb(82, 196, 26))
-                            : b.Started ? new SolidColorBrush(Color.FromRgb(22, 119, 255))
-                            : new SolidColorBrush(Color.FromRgb(140, 140, 150))
-            }
-        };
-        Grid.SetColumn(badge, 0);
-        head.Children.Add(badge);
-
-        var name = new TextBlock
-        {
-            Text = b.Name,
-            FontSize = 13,
-            FontWeight = FontWeights.SemiBold,
-            VerticalAlignment = VerticalAlignment.Center,
-            Foreground = Res("B.Text") as Brush
-        };
-        Grid.SetColumn(name, 1);
-        head.Children.Add(name);
-
-        var count = new TextBlock
-        {
-            Text = $"{b.Done} / {b.Total}",
-            FontSize = 11.5,
-            VerticalAlignment = VerticalAlignment.Center,
-            Foreground = Res("B.Text3") as Brush
-        };
-        Grid.SetColumn(count, 2);
-        head.Children.Add(count);
-
-        root.Children.Add(head);
-
-        var track = new Border
-        {
-            Height = 3,
-            CornerRadius = new CornerRadius(2),
-            Background = Res("B.Divider") as Brush,
-            Margin = new Thickness(0, 9, 0, 9)
-        };
-        var fill = new Border
-        {
-            Height = 3,
-            CornerRadius = new CornerRadius(2),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Background = b.AllDone ? new SolidColorBrush(Color.FromRgb(82, 196, 26)) : Res("B.Primary") as Brush,
-            Width = Math.Max(0, b.Percent * 260)
-        };
-        track.Child = fill;
-        root.Children.Add(track);
-
-        foreach (var item in b.Items)
-        {
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 2) };
-            row.Children.Add(new Icon
-            {
-                Kind = item.Done ? "Check" : "Circle",
-                Width = 12,
-                Height = 12,
-                StrokeThickness = 2,
-                Stroke = item.Done ? new SolidColorBrush(Color.FromRgb(82, 196, 26)) : Res("B.Text3") as Brush,
-                Margin = new Thickness(0, 0, 8, 0),
-                VerticalAlignment = VerticalAlignment.Center
-            });
-            row.Children.Add(new TextBlock
-            {
-                Text = item.Name,
-                FontSize = 11.5,
-                Foreground = item.Done ? Res("B.Text2") as Brush : Res("B.Text3") as Brush,
-                VerticalAlignment = VerticalAlignment.Center
-            });
-            root.Children.Add(row);
-        }
-
-        border.Child = root;
-        return border;
-    }
-
-    private static object? Res(string key) => System.Windows.Application.Current?.TryFindResource(key);
-}
 
 /// <summary>备份列表里的一项。</summary>
 public sealed class BackupItemVM
@@ -801,4 +671,5 @@ public sealed class BackupItemVM
         : $"{SizeBytes / 1024.0 / 1024:F0} MB";
 
     public string MetaText => CreatedAt.ToString("yyyy-MM-dd HH:mm:ss");
+}
 }

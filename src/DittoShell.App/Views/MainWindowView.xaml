@@ -11,7 +11,8 @@
         WindowStartupLocation="CenterScreen" ResizeMode="CanResize"
         MinWidth="1080" MinHeight="620"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal"
-        SizeChanged="OnWindowSizeChanged">
+        SizeChanged="OnWindowSizeChanged"
+        Icon="pack://application:,,,/Assets/app.ico">
 
   <!-- 系统级阴影 + 精确边缘缩放（不依赖 WM_NCHITTEST 手写） -->
   <WindowChrome.WindowChrome>
@@ -40,17 +41,10 @@
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
 
-          <Border Grid.Column="0" Width="22" Height="22" CornerRadius="6" Margin="14,0,9,0"
-                  VerticalAlignment="Center">
-            <Border.Background>
-              <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#9254DE" Offset="0"/>
-                <GradientStop Color="#1677FF" Offset="1"/>
-              </LinearGradientBrush>
-            </Border.Background>
-            <TextBlock Text="D" Foreground="White" FontSize="12" FontWeight="Bold"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-          </Border>
+          <Image Grid.Column="0" Width="22" Height="22" Margin="14,0,9,0"
+                 VerticalAlignment="Center"
+                 Source="pack://application:,,,/Assets/logo-256.png"
+                 RenderOptions.BitmapScalingMode="HighQuality"/>
 
           <TextBlock Grid.Column="1" Text="{Binding Source={x:Static loc:L.Instance}, Path=[app.name]}"
                      Foreground="{DynamicResource B.Brand}" FontSize="13.5" FontWeight="SemiBold"

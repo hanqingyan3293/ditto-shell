@@ -9,7 +9,8 @@
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         WindowStartupLocation="Manual" ShowInTaskbar="False" Topmost="True"
         ResizeMode="CanResize" MinWidth="320" MinHeight="280" MaxHeight="900"
-        UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal"
+        Icon="pack://application:,,,/Assets/app.ico">
 
   <Grid Margin="1">
     <Border Background="{DynamicResource B.Bg}" CornerRadius="2">

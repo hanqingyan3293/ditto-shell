@@ -107,6 +107,19 @@ public interface ITagStore
 {
     Task<IReadOnlyList<string>> GetTagsAsync(long clipId, CancellationToken ct = default);
     Task AddTagAsync(long clipId, string tag, CancellationToken ct = default);
+
+    /// <summary>
+    /// 批量加标签（单事务）。
+    /// 2088 条逐条加会跑几分钟，批量后 1 秒内完成。
+    /// </summary>
+    Task AddTagsBatchAsync(
+        IReadOnlyList<(long ClipId, string Tag)> items, CancellationToken ct = default);
+
+    /// <summary>删除没有任何条目引用的标签，返回删除数。</summary>
+    Task<int> PurgeOrphanTagsAsync(CancellationToken ct = default);
+
+    /// <summary>删除指定标签（同时解除所有引用）。</summary>
+    Task<int> DeleteTagAsync(string tagName, CancellationToken ct = default);
     Task RemoveTagAsync(long clipId, string tag, CancellationToken ct = default);
 
     /// <summary>
@@ -127,6 +140,11 @@ public interface IOrganizeLogStore
     Task<HashSet<long>> GetOrganizedIdsAsync(CancellationToken ct = default);
 
     /// <summary>记录一条已整理。</summary>
+    /// <summary>批量记录整理日志（单事务）。</summary>
+    Task MarkOrganizedBatchAsync(
+        IReadOnlyList<(long ClipId, string Hash, string GroupPath, string Tag)> items,
+        CancellationToken ct = default);
+
     Task MarkOrganizedAsync(long clipId, string contentHash, string groupName, string tag, CancellationToken ct = default);
 
     /// <summary>内容变了要重新整理（清除记录）。</summary>

@@ -215,6 +215,16 @@ public partial class App : System.Windows.Application
             sc.AddSingleton<IClipWriter>(writer);
             sc.AddSingleton<IDittoBridge>(bridge);
             sc.AddSingleton<DittoShell.Application.Services.GroupService>();
+            sc.AddSingleton<DittoShell.Domain.Abstractions.IGoalStore>(sp =>
+                new DittoShell.Infrastructure.Sidecar.GoalStore(
+                    sp.GetRequiredService<DittoShell.Infrastructure.Sidecar.SidecarStore>()));
+
+            sc.AddSingleton<DittoShell.Application.Services.AgentGoalService>(sp =>
+                new DittoShell.Application.Services.AgentGoalService(
+                    sp.GetService<DittoShell.Domain.Abstractions.IGoalStore>(),
+                    sp.GetService<DittoShell.Application.Services.AiAgentService>(),
+                    sp.GetService<DittoShell.Application.Services.AiTools>()));
+
             sc.AddSingleton<DittoShell.Application.Services.GroupOpsService>(sp =>
                 new DittoShell.Application.Services.GroupOpsService(
                     sp.GetRequiredService<DittoShell.Domain.Abstractions.IClipReader>(),
@@ -429,11 +439,39 @@ public partial class App : System.Windows.Application
 
     // ═══════════════ 托盘 ═══════════════
 
+    /// <summary>从嵌入资源加载托盘图标（16/32 自动选）。</summary>
+    private static System.Drawing.Icon LoadTrayIcon()
+    {
+        try
+        {
+            var res = System.Windows.Application.GetResourceStream(
+                new Uri("pack://application:,,,/Assets/app.ico"));
+            if (res is not null)
+            {
+                using var stream = res.Stream;
+                return new System.Drawing.Icon(stream);
+            }
+        }
+        catch { }
+
+        // 兜底：从 exe 自带的图标取
+        try
+        {
+            var exe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+            if (!string.IsNullOrEmpty(exe))
+                return System.Drawing.Icon.ExtractAssociatedIcon(exe)
+                       ?? System.Drawing.SystemIcons.Application;
+        }
+        catch { }
+
+        return System.Drawing.SystemIcons.Application;
+    }
+
     private void CreateTray()
     {
         _tray = new WinForms.NotifyIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = LoadTrayIcon(),
             Text = "Ditto Shell",
             Visible = true
         };
@@ -473,16 +511,6 @@ public partial class App : System.Windows.Application
                 break;
             }
             case "settings":
-            case "progress":
-            {
-                var m = ServiceProvider.GetRequiredService<MainWindowView>();
-                win = m;
-                m.Show();
-                m.Left = 120; m.Top = 80;
-                m.GoToSettings();
-                if (target == "progress") m.GoToProgress();
-                break;
-            }
             case "viewer":
             {
                 var reader = ServiceProvider.GetRequiredService<IClipReader>();
@@ -625,296 +653,6 @@ public partial class App : System.Windows.Application
                 await vms.AiChat.RefreshSessionsAsync();
                 vms.AiChat.IsSessionListOpen = true;
                 await Task.Delay(600);
-                break;
-            }
-            case "auditmenus":
-            {
-                var m = ServiceProvider.GetRequiredService<MainWindowView>();
-                win = m; m.Show(); m.Left = 60; m.Top = 40;
-                await Task.Delay(900);
-
-                var logPath = System.IO.Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory, "data", "menu.log");
-                System.IO.Directory.CreateDirectory(
-                    System.IO.Path.GetDirectoryName(logPath)!);
-                System.IO.File.AppendAllText(logPath,
-                    "=== AUDIT START " + DateTime.Now.ToString("HH:mm:ss") + " ===\n");
-
-                // 1) 主窗口所有 ContextMenu
-                int hooked = 0, unhooked = 0;
-                void ScanMenus(System.Windows.DependencyObject node, string where)
-                {
-                    if (node is System.Windows.FrameworkElement fe)
-                    {
-                        var cm = fe.ContextMenu;
-                        if (cm is not null)
-                        {
-                            var hasOpened = cm.GetType()
-                                .GetEvent("Opened") is not null;
-                            System.IO.File.AppendAllText(logPath,
-                                $"MENU {where} type={fe.GetType().Name} " +
-                                $"placement={cm.Placement} width={cm.MaxWidth}\n");
-                            hooked++;
-                        }
-                    }
-
-                    var count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(node);
-                    for (int i = 0; i < count; i++)
-                        ScanMenus(System.Windows.Media.VisualTreeHelper.GetChild(node, i), where);
-                }
-                ScanMenus(m, "MainWindow");
-
-                // 2) TextBox 的 ContextMenu 是否已禁用
-                int tbTotal = 0, tbWithMenu = 0;
-                void ScanTextBox(System.Windows.DependencyObject node)
-                {
-                    if (node is System.Windows.Controls.TextBox tb)
-                    {
-                        tbTotal++;
-                        if (tb.ContextMenu is not null) tbWithMenu++;
-                    }
-                    var count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(node);
-                    for (int i = 0; i < count; i++)
-                        ScanTextBox(System.Windows.Media.VisualTreeHelper.GetChild(node, i));
-                }
-                ScanTextBox(m);
-
-                System.IO.File.AppendAllText(logPath,
-                    $"SUMMARY menus={hooked} textboxes={tbTotal} " +
-                    $"tbWithSystemMenu={tbWithMenu}\n");
-
-                Console.WriteLine($"AUDIT menus={hooked} textboxes={tbTotal} tbWithMenu={tbWithMenu}");
-
-                // 3) 打开第一个真实菜单，验证 Opened="Menu_Opened" 是否触发
-                System.Windows.Controls.ContextMenu? firstMenu = null;
-                void FindFirst(System.Windows.DependencyObject node)
-                {
-                    if (firstMenu is not null) return;
-                    if (node is System.Windows.FrameworkElement fe && fe.ContextMenu is not null)
-                    {
-                        firstMenu = fe.ContextMenu;
-                        return;
-                    }
-                    var c = System.Windows.Media.VisualTreeHelper.GetChildrenCount(node);
-                    for (int i = 0; i < c; i++)
-                        FindFirst(System.Windows.Media.VisualTreeHelper.GetChild(node, i));
-                }
-                FindFirst(m);
-
-                if (firstMenu is not null)
-                {
-                    System.IO.File.AppendAllText(logPath,
-                        $"REALMENU opening placement={firstMenu.Placement}\n");
-
-                    SetCursorPos(600, 400);
-                    await Task.Delay(120);
-
-                    firstMenu.PlacementTarget = m;
-                    firstMenu.IsOpen = true;
-                    await Task.Delay(700);
-
-                    if (PresentationSource.FromVisual(firstMenu)
-                        is System.Windows.Interop.HwndSource src2)
-                    {
-                        GetWindowRect(src2.Handle, out var r2);
-                        System.IO.File.AppendAllText(logPath,
-                            $"REALMENU actual=({r2.Left},{r2.Top}) " +
-                            $"expect=(600,400) match={(Math.Abs(r2.Left - 600) < 8)}\n");
-                        Console.WriteLine($"REALMENU actual=({r2.Left},{r2.Top})");
-                    }
-
-                    firstMenu.IsOpen = false;
-                }
-                else
-                {
-                    System.IO.File.AppendAllText(logPath, "REALMENU none found\n");
-                }
-                await Task.Delay(200);
-                break;
-            }
-            case "menuverify":
-            {
-                var m = ServiceProvider.GetRequiredService<MainWindowView>();
-                win = m; m.Show(); m.Left = 80; m.Top = 60;
-                m.Width = 1200; m.Height = 700;
-                await Task.Delay(800);
-
-                var logPath = System.IO.Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory, "data", "menu.log");
-                System.IO.Directory.CreateDirectory(
-                    System.IO.Path.GetDirectoryName(logPath)!);
-
-                // 测试坐标（屏幕）——先把光标移过去，否则测到的是别处
-                const int targetX = 600;
-                const int targetY = 400;
-                SetCursorPos(targetX, targetY);
-                await Task.Delay(150);
-
-                // 造一个 ContextMenu 验证 Placement=Mouse 的实际落点
-                var menu = new System.Windows.Controls.ContextMenu();
-                menu.Items.Add(new System.Windows.Controls.MenuItem { Header = "测试项" });
-
-                // 模拟真实场景：设 PlacementTarget（挂到窗口里的某个元素上）
-                menu.Opened += (s4, e4) => MenuOpened(menu, e4);
-                menu.PlacementTarget = m;
-                menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Mouse;
-                menu.IsOpen = true;
-
-                await Task.Delay(900);
-
-                // 读菜单 HWND 的真实位置
-                try
-                {
-                    if (PresentationSource.FromVisual(menu)
-                        is System.Windows.Interop.HwndSource src)
-                    {
-                        GetWindowRect(src.Handle, out var r);
-                        var msg = $"VERIFY target=({targetX},{targetY}) actual=({r.Left},{r.Top}) " +
-                                  $"size=({r.Right - r.Left}x{r.Bottom - r.Top}) " +
-                                  $"match={(Math.Abs(r.Left - targetX) < 6 && Math.Abs(r.Top - targetY) < 6)}";
-                        System.IO.File.AppendAllText(logPath, msg + Environment.NewLine);
-                        Console.WriteLine(msg);
-                    }
-                    else
-                    {
-                        System.IO.File.AppendAllText(logPath,
-                            "VERIFY no HwndSource" + Environment.NewLine);
-                        Console.WriteLine("VERIFY no HwndSource");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.IO.File.AppendAllText(logPath,
-                        "VERIFY ERROR " + ex.Message + Environment.NewLine);
-                }
-
-                menu.IsOpen = false;
-                await Task.Delay(200);
-                break;
-            }
-            case "pinvoketest":
-            {
-                var m0 = ServiceProvider.GetRequiredService<MainWindowView>();
-                win = m0; m0.Show();
-                // 验证 GetCursorPos P/Invoke 能正常调用
-                try
-                {
-                    await Task.Delay(300);
-
-                    var logPath = System.IO.Path.Combine(
-                        AppDomain.CurrentDomain.BaseDirectory, "data", "menu.log");
-                    System.IO.Directory.CreateDirectory(
-                        System.IO.Path.GetDirectoryName(logPath)!);
-
-                    // 反射调用私有方法验证
-                    var t = typeof(MainWindowView);
-                    var m1 = t.GetMethod("GetCursorPosRaw",
-                        System.Reflection.BindingFlags.NonPublic |
-                        System.Reflection.BindingFlags.Static);
-                    if (m1 is null)
-                    {
-                        System.IO.File.AppendAllText(logPath,
-                            "GETCURSORPOS RAW: method not found\n");
-                    }
-                    else
-                    {
-                        var args = new object[] { null! };
-                        var ok = (bool)m1.Invoke(null, args)!;
-                        System.IO.File.AppendAllText(logPath,
-                            $"GETCURSORPOS OK={ok} ptr={(args[0] is null ? "null" : "set")}\n");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.IO.File.AppendAllText(
-                        System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-                            "data", "menu.log"),
-                        "PINVOKE TEST FAILED: " + ex.Message + "\n");
-                }
-
-                await Task.Delay(200);
-                break;
-            }
-            case "menutest":
-            {
-                // 打开主窗口，程序化弹出右键菜单，全屏截图验证位置
-                var m = ServiceProvider.GetRequiredService<MainWindowView>();
-                win = m; m.Show(); m.Left = 80; m.Top = 60;
-                m.Width = 1200; m.Height = 700;
-                await Task.Delay(700);
-
-                // 找到列表第一个条目，弹它的 ContextMenu
-                var list = m.FindName("ItemsList") as System.Windows.Controls.ListBox;
-                if (list is not null && list.Items.Count > 3)
-                {
-                    list.SelectedIndex = 1;
-
-                    // 让 ListBox 生成容器
-                    list.UpdateLayout();
-
-                    var container = list.ItemContainerGenerator
-                        .ContainerFromIndex(1) as System.Windows.FrameworkElement;
-
-                    if (container is not null)
-                    {
-                        // 找到 container 里的 Border（挂 ContextMenu 的那个）
-                        System.Windows.Controls.ContextMenu? menu = null;
-                        void FindMenu(System.Windows.DependencyObject node)
-                        {
-                            if (menu is not null) return;
-                            var count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(node);
-                            for (int i = 0; i < count; i++)
-                            {
-                                var ch = System.Windows.Media.VisualTreeHelper.GetChild(node, i);
-                                if (ch is System.Windows.FrameworkElement fe && fe.ContextMenu is not null)
-                                {
-                                    menu = fe.ContextMenu;
-                                    return;
-                                }
-                                FindMenu(ch);
-                            }
-                        }
-                        FindMenu(container);
-
-                        if (menu is not null)
-                        {
-                            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Absolute;
-                            menu.HorizontalOffset = 400;
-                            menu.VerticalOffset = 300;
-                            menu.StaysOpen = true;      // 测试模式下别自动关
-                            menu.IsOpen = true;
-                            Console.WriteLine($"menu opened={menu.IsOpen} at 400,300");
-
-                            // 等 WPF 完成 popup 定位
-                            await Dispatcher.InvokeAsync(() => { },
-                                System.Windows.Threading.DispatcherPriority.ContextIdle);
-                            await Task.Delay(800);
-                            Console.WriteLine($"menu still open={menu.IsOpen}");
-                        }
-                        else
-                        {
-                            Console.WriteLine("menu not found on container");
-                        }
-                    }
-                }
-
-                // 全屏截图（包含 Popup）
-                try
-                {
-                    var screen = System.Windows.Forms.Screen.PrimaryScreen;
-                    if (screen is not null)
-                    {
-                        var b = screen.Bounds;
-                        using var bmp = new System.Drawing.Bitmap(b.Width, b.Height);
-                        using var g = System.Drawing.Graphics.FromImage(bmp);
-                        g.CopyFromScreen(b.X, b.Y, 0, 0, bmp.Size);
-                        bmp.Save(path, System.Drawing.Imaging.ImageFormat.Png);
-                        Console.WriteLine("screenshot saved: " + path);
-                    }
-                }
-                catch (Exception ex) { Console.WriteLine("screenshot failed: " + ex.Message); }
-
-                await Task.Delay(300);
                 break;
             }
             case "aidrawer":

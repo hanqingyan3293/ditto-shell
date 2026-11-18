@@ -10,7 +10,7 @@ namespace DittoShell.Infrastructure.Sidecar;
 /// </summary>
 public sealed class SidecarStore : ITagStore, DittoShell.Domain.Abstractions.ISourceStore, DittoShell.Domain.Abstractions.IOrganizeLogStore, IDisposable
 {
-    private const int CurrentVersion = 3;
+    private const int CurrentVersion = 4;
 
     private readonly string _dbPath;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -42,6 +42,11 @@ public sealed class SidecarStore : ITagStore, DittoShell.Domain.Abstractions.ISo
             else if (version < CurrentVersion)
             {
                 await MigrateAsync(con, version, ct);
+
+                // 迁移完更新版本号
+                using var upd = con.CreateCommand();
+                upd.CommandText = $"PRAGMA user_version = {CurrentVersion};";
+                await upd.ExecuteNonQueryAsync(ct);
             }
         }
         finally
@@ -162,7 +167,24 @@ CREATE TABLE IF NOT EXISTS ai_message (
 
 CREATE INDEX IF NOT EXISTS ix_ai_msg_session ON ai_message(session_id, id);
 
-PRAGMA user_version = 3;
+CREATE TABLE IF NOT EXISTS ai_goal (
+  id              TEXT PRIMARY KEY,
+  objective       TEXT NOT NULL,
+  round           INTEGER NOT NULL DEFAULT 0,
+  max_rounds      INTEGER NOT NULL DEFAULT 30,
+  processed_items INTEGER NOT NULL DEFAULT 0,
+  status          INTEGER NOT NULL DEFAULT 0,
+  last_summary    TEXT NOT NULL DEFAULT '',
+  block_reason    TEXT NOT NULL DEFAULT '',
+  summary         TEXT NOT NULL DEFAULT '',
+  created_at      TEXT NOT NULL,
+  updated_at      TEXT NOT NULL,
+  completed_at    TEXT
+);
+
+CREATE INDEX IF NOT EXISTS ix_goal_updated ON ai_goal(updated_at DESC);
+
+PRAGMA user_version = 4;
 ";
         await cmd.ExecuteNonQueryAsync(ct);
     }
@@ -173,6 +195,8 @@ PRAGMA user_version = 3;
         {
             using var c3 = con.CreateCommand();
             c3.CommandText = """
+
+
                 CREATE TABLE IF NOT EXISTS ai_session (
                   id TEXT PRIMARY KEY, title TEXT,
                   created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
@@ -187,9 +211,33 @@ PRAGMA user_version = 3;
                   at INTEGER NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS ix_ai_msg_session ON ai_message(session_id, id);
-                PRAGMA user_version = 3;
+                PRAGMA user_version = 4;
                 """;
             await c3.ExecuteNonQueryAsync(ct);
+        }
+
+        // v3 -> v4：新增 ai_goal（目标模式）
+        if (from < 4)
+        {
+            using var c4 = con.CreateCommand();
+            c4.CommandText = """
+                CREATE TABLE IF NOT EXISTS ai_goal (
+                  id TEXT PRIMARY KEY,
+                  objective TEXT NOT NULL,
+                  round INTEGER NOT NULL DEFAULT 0,
+                  max_rounds INTEGER NOT NULL DEFAULT 30,
+                  processed_items INTEGER NOT NULL DEFAULT 0,
+                  status INTEGER NOT NULL DEFAULT 0,
+                  last_summary TEXT NOT NULL DEFAULT '',
+                  block_reason TEXT NOT NULL DEFAULT '',
+                  summary TEXT NOT NULL DEFAULT '',
+                  created_at TEXT NOT NULL,
+                  updated_at TEXT NOT NULL,
+                  completed_at TEXT
+                );
+                CREATE INDEX IF NOT EXISTS ix_goal_updated ON ai_goal(updated_at DESC);
+                """;
+            await c4.ExecuteNonQueryAsync(ct);
         }
 
         // v1 -> v2：新增 organize_log（AI 整理日志）
@@ -211,7 +259,7 @@ PRAGMA user_version = 2;";
 
     // ───────────── 连接管理 ─────────────
 
-    private async Task<T> WithConnectionAsync<T>(Func<SqliteConnection, Task<T>> work, CancellationToken ct)
+    public async Task<T> WithConnectionAsync<T>(Func<SqliteConnection, Task<T>> work, CancellationToken ct)
     {
         await _gate.WaitAsync(ct);
         try
@@ -340,6 +388,97 @@ ORDER BY n DESC, t.name";
             cmd.Parameters.AddWithValue("$c", clipId);
             cmd.Parameters.AddWithValue("$t", tagId);
             return await cmd.ExecuteNonQueryAsync(ct);
+        }, ct);
+    }
+
+    /// <summary>
+    /// 批量加标签（单事务）。
+    /// 2088 条逐条加要几分钟，这里一次性完成。
+    /// </summary>
+    public async Task AddTagsBatchAsync(
+        IReadOnlyList<(long ClipId, string Tag)> items, CancellationToken ct = default)
+    {
+        var clean = items
+            .Select(x => (x.ClipId, Tag: (x.Tag ?? "").Trim().TrimStart('#')))
+            .Where(x => x.Tag.Length > 0)
+            .ToList();
+
+        if (clean.Count == 0) return;
+
+        await WithConnectionAsync<int>(async con =>
+        {
+            // 标签名 → id（先批量查）
+            var names = clean.Select(x => x.Tag).Distinct().ToList();
+            var map = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var name in names)
+                map[name] = await EnsureTagAsync(con, name, ct);
+
+            // 批量插入（复用一条命令）
+            using var tx = con.BeginTransaction();
+            using var cmd = con.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "INSERT OR IGNORE INTO clip_tag (clip_id, tag_id) VALUES ($c, $t)";
+
+            var pc = cmd.Parameters.Add("$c", Microsoft.Data.Sqlite.SqliteType.Integer);
+            var pt = cmd.Parameters.Add("$t", Microsoft.Data.Sqlite.SqliteType.Integer);
+
+            foreach (var (clipId, tag) in clean)
+            {
+                if (!map.TryGetValue(tag, out var tagId)) continue;
+                pc.Value = clipId;
+                pt.Value = tagId;
+                try { await cmd.ExecuteNonQueryAsync(ct); } catch { }
+            }
+
+            tx.Commit();
+            return clean.Count;
+        }, ct);
+    }
+
+    /// <summary>删除没有任何条目引用的标签。</summary>
+    public async Task<int> PurgeOrphanTagsAsync(CancellationToken ct = default)
+    {
+        return await WithConnectionAsync<int>(async con =>
+        {
+            using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                DELETE FROM tag
+                WHERE id NOT IN (SELECT DISTINCT tag_id FROM clip_tag)
+                """;
+            return await cmd.ExecuteNonQueryAsync(ct);
+        }, ct);
+    }
+
+    /// <summary>删除指定标签（同时解除引用）。</summary>
+    public async Task<int> DeleteTagAsync(string tagName, CancellationToken ct = default)
+    {
+        tagName = (tagName ?? "").Trim().TrimStart('#');
+        if (tagName.Length == 0) return 0;
+
+        return await WithConnectionAsync<int>(async con =>
+        {
+            using var tx = con.BeginTransaction();
+
+            // 先删引用
+            using var del1 = con.CreateCommand();
+            del1.Transaction = tx;
+            del1.CommandText = """
+                DELETE FROM clip_tag
+                WHERE tag_id IN (SELECT id FROM tag WHERE name = $n)
+                """;
+            del1.Parameters.AddWithValue("$n", tagName);
+            await del1.ExecuteNonQueryAsync(ct);
+
+            // 再删标签
+            using var del2 = con.CreateCommand();
+            del2.Transaction = tx;
+            del2.CommandText = "DELETE FROM tag WHERE name = $n";
+            del2.Parameters.AddWithValue("$n", tagName);
+            var n = await del2.ExecuteNonQueryAsync(ct);
+
+            tx.Commit();
+            return n;
         }, ct);
     }
 
@@ -516,6 +655,51 @@ SELECT DISTINCT clip_id FROM clip_meta";
             using var r = await cmd.ExecuteReaderAsync(ct);
             while (await r.ReadAsync(ct)) set.Add(r.GetInt64(0));
             return set;
+        }, ct);
+    }
+
+    /// <summary>批量记录整理日志（单事务）。</summary>
+    public async Task MarkOrganizedBatchAsync(
+        IReadOnlyList<(long ClipId, string Hash, string GroupPath, string Tag)> items,
+        CancellationToken ct = default)
+    {
+        if (items.Count == 0) return;
+
+        await WithConnectionAsync<int>(async con =>
+        {
+            using var tx = con.BeginTransaction();
+            using var cmd = con.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = """
+                INSERT INTO organize_log (clip_id, content_hash, group_name, tag, done_at)
+                VALUES ($c, $h, $g, $t, $d)
+                ON CONFLICT(clip_id) DO UPDATE SET
+                  content_hash = excluded.content_hash,
+                  group_name = excluded.group_name,
+                  tag = excluded.tag,
+                  done_at = excluded.done_at
+                """;
+
+            var pc = cmd.Parameters.Add("$c", Microsoft.Data.Sqlite.SqliteType.Integer);
+            var ph = cmd.Parameters.Add("$h", Microsoft.Data.Sqlite.SqliteType.Text);
+            var pg = cmd.Parameters.Add("$g", Microsoft.Data.Sqlite.SqliteType.Text);
+            var pt = cmd.Parameters.Add("$t", Microsoft.Data.Sqlite.SqliteType.Text);
+            var pd = cmd.Parameters.Add("$d", Microsoft.Data.Sqlite.SqliteType.Text);
+
+            var now = DateTime.UtcNow.ToString("O");
+
+            foreach (var (clipId, hash, groupPath, tag) in items)
+            {
+                pc.Value = clipId;
+                ph.Value = hash ?? "";
+                pg.Value = groupPath ?? "";
+                pt.Value = tag ?? "";
+                pd.Value = now;
+                try { await cmd.ExecuteNonQueryAsync(ct); } catch { }
+            }
+
+            tx.Commit();
+            return items.Count;
         }, ct);
     }
 

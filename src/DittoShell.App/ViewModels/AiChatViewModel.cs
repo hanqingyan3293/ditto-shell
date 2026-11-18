@@ -95,6 +95,9 @@ public sealed partial class AiChatViewModel : ObservableObject
 
     /// <summary>历史会话列表。</summary>
     public ObservableCollection<SessionItemVM> Sessions { get; } = new();
+
+    /// <summary>当前会话（供目标模式使用）。</summary>
+    public AgentSession? CurrentSession => _session;
     [ObservableProperty] private bool _isSessionListOpen;
 
     [RelayCommand]
@@ -274,8 +277,11 @@ public sealed partial class AiChatViewModel : ObservableObject
         var running = new ChatBubbleVM("event", "正在思考…") { IsRunning = true, EventIcon = "Loader" };
         Bubbles.Add(running);
 
+        using var guard = Services.AiSessionGuard.Begin("Send");
+
         try
         {
+            Services.AiSessionGuard.Phase("调用 AI");
             var result = await _agent.RunAsync(_session, text, ev =>
             {
                 // 事件回调可能在后台线程，切回 UI
@@ -288,6 +294,8 @@ public sealed partial class AiChatViewModel : ObservableObject
             // 移除"正在跑"的占位
             running.IsRunning = false;
             running.Text = "";
+
+            Services.AiSessionGuard.Phase("处理结果");
 
             if (!result.Success)
             {

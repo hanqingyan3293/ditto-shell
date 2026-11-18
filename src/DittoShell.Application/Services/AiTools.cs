@@ -29,6 +29,60 @@ public sealed class AiTools
     /// <summary>当前会话的结果集（工具之间的上下文）。</summary>
     public List<ClipItem> Current { get; private set; } = new();
 
+    // ══════════ 权限控制 ══════════
+
+    /// <summary>当前权限等级。</summary>
+    public Domain.Abstractions.AiPermissionLevel Permission { get; set; }
+        = Domain.Abstractions.AiPermissionLevel.Safe;
+
+    /// <summary>计划模式：开启时所有写工具被禁用。</summary>
+    public bool PlanMode { get; set; }
+
+    /// <summary>
+    /// 计划评审回调：AI 调 exit_plan_mode 时触发。
+    /// 返回 true = 批准执行；false = 用户要求继续规划或取消。
+    /// </summary>
+    public Func<string, Task<(bool Approved, string? Feedback)>>? OnPlanReview { get; set; }
+
+    /// <summary>
+    /// 目标更新回调：(action, summary, processed, reason)
+    /// action = complete / continue / blocked
+    /// </summary>
+    public Func<string, string, int, string?, Task>? OnGoalUpdate { get; set; }
+
+    /// <summary>当前目标（由 AgentGoalService 注入，供 get_goal 用）。</summary>
+    public Domain.Abstractions.AgentGoal? ActiveGoal { get; set; }
+
+    /// <summary>最近一次提交的计划（供 UI 展示）。</summary>
+    public string LastPlan { get; private set; } = "";
+
+    /// <summary>工具的风险等级。</summary>
+    public static Domain.Abstractions.ToolRisk ToolRiskOf(string name) => name switch
+    {
+        "organize" or "move_to_group" => Domain.Abstractions.ToolRisk.Dangerous,
+        "add_tag" or "mark_private" or "export" => Domain.Abstractions.ToolRisk.Write,
+        _ => Domain.Abstractions.ToolRisk.ReadOnly
+    };
+
+    /// <summary>检查权限，返回 null 表示允许，否则返回拒绝原因。</summary>
+    private string? CheckPermission(string toolName)
+    {
+        var risk = ToolRiskOf(toolName);
+
+        // 计划模式：一律禁写
+        if (PlanMode && risk != Domain.Abstractions.ToolRisk.ReadOnly)
+            return $"【计划模式】当前只能查，不能改。工具「{toolName}」被禁止。" +
+                   "请先调 exit_plan_mode 提交方案。";
+
+        // 只读模式：禁写
+        if (Permission == Domain.Abstractions.AiPermissionLevel.ReadOnly
+            && risk != Domain.Abstractions.ToolRisk.ReadOnly)
+            return $"【只读模式】当前只能查，不能改。工具「{toolName}」被禁止。" +
+                   "如需修改请把权限切到「安全」或「完全」。";
+
+        return null;   // 允许（安全模式的确认在 ExecuteAsync 里做）
+    }
+
     public AiTools(
         IClipReader reader,
         ITagStore? tags = null,
@@ -171,6 +225,24 @@ public sealed class AiTools
             Name = "mark_private",
             Description = "把指定条目标记为隐私（不上传 AI）。会请求用户确认。",
             ParametersJson = """{"type":"object","properties":{"ids":{"type":"array","items":{"type":"integer"}}},"required":["ids"]}"""
+        },
+        new()
+        {
+            Name = "exit_plan_mode",
+            Description = "提交执行计划给用户评审。计划模式下必须调这个才能结束规划。",
+            ParametersJson = """{"type":"object","properties":{"plan":{"type":"string","description":"完整的执行计划（Markdown）：现状、方案、影响、风险"}},"required":["plan"]}"""
+        },
+        new()
+        {
+            Name = "get_goal",
+            Description = "查看当前目标的内容、进度、剩余轮次。目标模式下每轮开始时先调这个。",
+            ParametersJson = """{"type":"object","properties":{}}"""
+        },
+        new()
+        {
+            Name = "update_goal",
+            Description = "更新目标状态。目标模式下你必须在这一轮结束时调用它：complete 表示目标已达成；continue 表示还需要下一轮；blocked 表示做不下去（要说明原因）。",
+            ParametersJson = """{"type":"object","properties":{"action":{"type":"string","enum":["complete","continue","blocked"],"description":"complete=目标达成；continue=需继续；blocked=受阻"},"summary":{"type":"string","description":"本轮做了什么（一句话）"},"processed":{"type":"integer","description":"本轮处理了多少条"},"reason":{"type":"string","description":"blocked 时必填：为什么做不下去"}},"required":["action","summary"]}"""
         }
     };
 
@@ -202,6 +274,10 @@ public sealed class AiTools
     /// <summary>执行一个工具，返回给 AI 的精简文本。</summary>
     public async Task<string> ExecuteAsync(string name, string argsJson, CancellationToken ct = default)
     {
+        // ── 权限检查 ──
+        var denied = CheckPermission(name);
+        if (denied is not null) return denied;
+
         JsonElement a;
         try { a = JsonDocument.Parse(argsJson).RootElement; }
         catch { a = default; }
@@ -226,6 +302,11 @@ public sealed class AiTools
                 "timeline" => Timeline(Int(a, "days", 30)),
                 "find_similar" => FindSimilar(Int64(a, "id"), Int(a, "limit", 10)),
                 "detect_sensitive" => await DetectSensitiveAsync(Int(a, "limit", 30), ct),
+                "exit_plan_mode" => await ExitPlanModeAsync(Str(a, "plan"), ct),
+                "get_goal" => GetGoalText(),
+                "update_goal" => await UpdateGoalAsync(
+                    Str(a, "action"), Str(a, "summary"),
+                    Int(a, "processed", 0), Str(a, "reason"), ct),
                 "export" => await ExportAsync(Str(a, "format"), ct),
                 "move_to_group" => await MoveToGroupAsync(Ids(a, "ids"), Str(a, "group"), ct),
                 "add_tag" => await AddTagAsync(Ids(a, "ids"), Str(a, "tag"), ct),
@@ -294,6 +375,74 @@ public sealed class AiTools
     {
         var priv = await GetPrivateIdsAsync(ct);
         return items.Where(x => !priv.Contains(x.Id)).ToList();
+    }
+
+    /// <summary>get_goal 的实现。</summary>
+    private string GetGoalText()
+    {
+        var g = ActiveGoal;
+        if (g is null) return "当前没有目标。";
+
+        return $"""
+目标：{g.Objective}
+进度：第 {g.Round}/{g.MaxRounds} 轮
+已处理：{g.ProcessedItems} 条
+状态：{g.Status}
+上轮总结：{(string.IsNullOrEmpty(g.LastRoundSummary) ? "（无）" : g.LastRoundSummary)}
+""";
+    }
+
+    /// <summary>update_goal 的实现。</summary>
+    private async Task<string> UpdateGoalAsync(
+        string action, string summary, int processed, string? reason, CancellationToken ct)
+    {
+        if (OnGoalUpdate is null)
+            return "已记录（无目标服务，不会续跑）。";
+
+        try
+        {
+            await OnGoalUpdate(action, summary ?? "", processed, reason);
+
+            return action switch
+            {
+                "complete" => "目标已标记完成。",
+                "blocked" => "目标已标记受阻。",
+                _ => "已记录本轮进度，系统会继续下一轮。"
+            };
+        }
+        catch (Exception ex)
+        {
+            return "更新目标失败：" + ex.Message;
+        }
+    }
+
+    /// <summary>提交计划给用户评审。</summary>
+    private async Task<string> ExitPlanModeAsync(string plan, CancellationToken ct)
+    {
+        LastPlan = plan ?? "";
+
+        if (OnPlanReview is null)
+            return "已记录计划（无评审界面，直接继续）。";
+
+        try
+        {
+            var (approved, feedback) = await OnPlanReview(plan ?? "");
+
+            if (approved)
+            {
+                // 批准 → 退出计划模式
+                PlanMode = false;
+                return "用户已批准计划。计划模式已关闭，现在可以执行写操作。";
+            }
+
+            return string.IsNullOrWhiteSpace(feedback)
+                ? "用户拒绝了计划。请重新思考方案，然后再次调用 exit_plan_mode。"
+                : "用户的反馈：" + feedback + "\n请根据反馈调整方案，然后再次调用 exit_plan_mode。";
+        }
+        catch (Exception ex)
+        {
+            return "评审失败：" + ex.Message;
+        }
     }
 
     private async Task<string> SearchAsync(string keyword, int limit, CancellationToken ct)

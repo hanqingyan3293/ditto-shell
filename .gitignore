@@ -41,3 +41,6 @@ tools/menu-verification/
 docs/mockups/shots/
 docs/mockups/*.png
 !docs/screenshots/
+
+# ══════ 图标调试预览 ══════
+docs/icon-previews/

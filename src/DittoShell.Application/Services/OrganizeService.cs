@@ -84,6 +84,14 @@ public sealed class OrganizeService
         return (fresh, candidates.Count - fresh.Count);
     }
 
+    /// <summary>已整理过的条目 ID 集合（用于识别用户手动分类的条目）。</summary>
+    public async Task<HashSet<long>> GetOrganizedIdsAsync(CancellationToken ct = default)
+    {
+        if (_log is null) return new HashSet<long>();
+        try { return await _log.GetOrganizedIdsAsync(ct); }
+        catch { return new HashSet<long>(); }
+    }
+
     public Task<int> GetOrganizedCountAsync(CancellationToken ct = default)
         => _log?.GetOrganizedCountAsync(ct) ?? Task.FromResult(0);
 
@@ -149,8 +157,14 @@ public sealed class OrganizeService
         foreach (var it in items) await MarkDoneAsync(it, ct);
     }
 
+    /// <summary>
+    /// 应用整理结果（批量事务版）。
+    /// progress: (已完成, 总数, 阶段说明)
+    /// </summary>
     public async Task<(int Done, string Message)> ApplyAsync(
-        IReadOnlyList<OrganizeItem> items, CancellationToken ct = default)
+        IReadOnlyList<OrganizeItem> items,
+        Action<int, int, string>? progress = null,
+        CancellationToken ct = default)
     {
         var picked = items.Where(x => x.Selected && !x.IsDone).ToList();
         if (picked.Count == 0) return (0, "没有勾选任何条目");
@@ -172,6 +186,11 @@ public sealed class OrganizeService
 
         int done = 0;
         var errors = new List<string>();
+        var tagBatch = new List<(long ClipId, string Tag)>();
+        var logBatch = new List<(long ClipId, string Hash, string GroupPath, string Tag)>();
+        var movedCount = 0;
+        var totalGroups = picked.GroupBy(x => x.GroupPath, StringComparer.OrdinalIgnoreCase).Count();
+        var groupIndex = 0;
 
         foreach (var group in picked.GroupBy(x => x.GroupPath, StringComparer.OrdinalIgnoreCase))
         {
@@ -214,39 +233,64 @@ public sealed class OrganizeService
             try
             {
                 await _writer.MoveToGroupAsync(ids, groupId, ct);
+                movedCount += ids.Count;
             }
             catch (Exception ex)
             {
                 errors.Add($"移动到「{group.Key}」失败：{ex.Message}");
+                groupIndex++;
                 continue;
             }
 
+            // 只收集，不落库（最后批量写）
             foreach (var item in group)
             {
                 if (!string.IsNullOrWhiteSpace(item.Tag))
-                {
-                    try { await _tags.AddTagAsync(item.ClipId, item.Tag, ct); }
-                    catch { }
-                }
+                    tagBatch.Add((item.ClipId, item.Tag));
 
-                // 记入整理日志（下次跳过）
-                try
-                {
-                    if (_log is not null)
-                        await _log.MarkOrganizedAsync(item.ClipId, Hash(item.Preview),
-                                                      item.GroupPath, item.Tag, ct);
-                }
-                catch { }
-
+                logBatch.Add((item.ClipId, Hash(item.Preview), item.GroupPath, item.Tag));
                 item.IsDone = true;
                 done++;
             }
+
+            groupIndex++;
+            progress?.Invoke(done, picked.Count, $"移动分组 {groupIndex}/{totalGroups}（已处理 {done} 条）");
         }
 
+        // ── 批量写标签（单事务）──
+        if (tagBatch.Count > 0)
+        {
+            progress?.Invoke(done, picked.Count, $"写入 {tagBatch.Count} 个标签…");
+            try { await _tagsAddBatch(tagBatch, ct); }
+            catch (Exception ex) { errors.Add($"标签写入失败：{ex.Message}"); }
+        }
+
+        // ── 批量记日志（单事务）──
+        if (logBatch.Count > 0)
+        {
+            progress?.Invoke(done, picked.Count, $"记录 {logBatch.Count} 条整理日志…");
+            try
+            {
+                if (_log is not null)
+                    await _log.MarkOrganizedBatchAsync(logBatch, ct);
+            }
+            catch (Exception ex) { errors.Add($"日志写入失败：{ex.Message}"); }
+        }
+
+        progress?.Invoke(done, picked.Count, "完成");
+
         var msg = errors.Count == 0
-            ? $"已整理 {done} 条（下次会跳过这些）"
+            ? $"已整理 {done} 条（{movedCount} 条移动分组，{tagBatch.Count} 个标签）"
             : $"已整理 {done} 条，{errors.Count} 项失败：{string.Join("；", errors.Take(2))}";
 
         return (done, msg);
+    }
+
+    /// <summary>批量加标签。</summary>
+    private async Task _tagsAddBatch(
+        IReadOnlyList<(long ClipId, string Tag)> batch, CancellationToken ct)
+    {
+        if (_tags is null) return;
+        await _tags.AddTagsBatchAsync(batch, ct);
     }
 }
